@@ -1,6 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
+import userReducer from "./slices/userSlice";
 
-export const makeStore = () => configureStore({ reducer: {} });
+export const makeStore = () =>
+  configureStore({
+    reducer: {
+      user: userReducer,
+    },
+  });
 
 export type AppStore = ReturnType<typeof makeStore>;
 
