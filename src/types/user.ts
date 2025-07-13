@@ -1,8 +1,18 @@
+export type Age =
+  | "18-24"
+  | "25-34"
+  | "35-44"
+  | "45-54"
+  | "55+"
+  | "prefer-not-to-say";
+
+export type Gender = "male" | "female" | "other" | "prefer-not-to-say";
+
 export interface UserInfo {
   id: string;
   username: string;
-  age: number;
-  gender: "male" | "female" | "other" | "prefer-not-to-say";
+  age: Age;
+  gender: Gender;
   country: string;
   interests: string[];
   createdAt: number;

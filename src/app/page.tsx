@@ -6,6 +6,7 @@ import { useUserPersistence } from "@/lib/hooks/useUserPersistence";
 
 import FeatureCard from "@/components/featureCard";
 import { Card } from "@/components/ui/card";
+import UserInfoForm from "@/components/userInfoForm";
 
 import { Shield, Lock, Users, Globe } from "lucide-react";
 
@@ -18,7 +19,7 @@ export default function LandingPage() {
   }, [currentUser, router]);
 
   return (
-    <main className="from-background via-background to-muted min-h-screen bg-gradient-to-br">
+    <div className="from-background via-background to-muted min-h-screen bg-gradient-to-br">
       <div className="container mx-auto px-4 py-8">
         <header className="mb-12 text-center">
           <h1 className="from-primary to-primary/60 mb-4 bg-gradient-to-r bg-clip-text text-4xl font-bold text-transparent select-none md:text-5xl">
@@ -31,35 +32,43 @@ export default function LandingPage() {
           </p>
         </header>
 
-        <div className="mx-auto mb-12 grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-4">
-          <FeatureCard
-            icon={<Shield className="h-6 w-6" />}
-            title="100% Anonymous"
-            description="No email or phone required"
-          />
-          <FeatureCard
-            icon={<Lock className="h-6 w-6" />}
-            title="E2E Encrypted"
-            description="Messages encrypted locally"
-          />
-          <FeatureCard
-            icon={<Users className="h-6 w-6" />}
-            title="P2P Direct"
-            description="No server middleman"
-          />
-          <FeatureCard
-            icon={<Globe className="h-6 w-6" />}
-            title="Global Connect"
-            description="Chat with anyone, anywhere"
-          />
-        </div>
+        <main>
+          <div className="mx-auto mb-12 grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-4">
+            <FeatureCard
+              icon={<Shield className="h-6 w-6" />}
+              title="100% Anonymous"
+              description="No email or phone required"
+            />
+            <FeatureCard
+              icon={<Lock className="h-6 w-6" />}
+              title="E2E Encrypted"
+              description="Messages encrypted locally"
+            />
+            <FeatureCard
+              icon={<Users className="h-6 w-6" />}
+              title="P2P Direct"
+              description="No server middleman"
+            />
+            <FeatureCard
+              icon={<Globe className="h-6 w-6" />}
+              title="Global Connect"
+              description="Chat with anyone, anywhere"
+            />
+          </div>
 
-        <Card className="mx-auto max-w-md p-6 md:p-8">
-          <h2 className="mb-6 text-center text-2xl font-semibold">
-            Start Chatting Anonymously
-          </h2>
-        </Card>
+          <Card className="mx-auto max-w-md p-6 md:p-8">
+            <h2 className="mb-6 text-center text-2xl font-semibold">
+              Start Chatting Anonymously
+            </h2>
+            <UserInfoForm />
+          </Card>
+        </main>
+
+        <footer className="text-muted-foreground mt-12 text-center text-sm">
+          <p>Your data is stored locally and expires in 24 hours</p>
+          <p className="mt-2">No cookies • No tracking • No logs</p>
+        </footer>
       </div>
-    </main>
+    </div>
   );
 }
