@@ -15,7 +15,7 @@ const userSlice = createSlice({
   reducers: {
     setUser: (
       state,
-      action: PayloadAction<Omit<UserInfo, "id" | "createdAt" | "expiresAt">>
+      action: PayloadAction<Omit<UserInfo, "id" | "createdAt" | "expiresAt">>,
     ) => {
       const now = Date.now();
 

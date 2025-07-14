@@ -37,7 +37,7 @@ const UserInfoForm = () => {
   const [currentInterest, setCurrentInterest] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submitUserInfo = (e: FormEvent) => {
+  const submitUserInfo = async (e: FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
 

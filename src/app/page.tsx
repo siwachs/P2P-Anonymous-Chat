@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useUserPersistence } from "@/lib/hooks/useUserPersistence";
 
-import FeatureCard from "@/components/featureCard";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card } from "@/components/ui/card";
-import UserInfoForm from "@/components/userInfoForm";
+import UserInfoForm from "@/components/UserInfoForm";
 
 import { Shield, Lock, Users, Globe } from "lucide-react";
 
@@ -21,6 +21,8 @@ export default function LandingPage() {
   return (
     <div className="from-background via-background to-muted min-h-screen bg-gradient-to-br">
       <div className="container mx-auto px-4 py-8">
+        <ThemeToggle />
+
         <header className="mb-12 text-center">
           <h1 className="from-primary to-primary/60 mb-4 bg-gradient-to-r bg-clip-text text-4xl font-bold text-transparent select-none md:text-5xl">
             Anonymous P2P Chat
@@ -70,5 +72,22 @@ export default function LandingPage() {
         </footer>
       </div>
     </div>
+  );
+}
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card className="p-4 text-center transition-shadow hover:shadow-lg">
+      <div className="text-primary mb-2 flex justify-center">{icon}</div>
+      <h3 className="mb-1 font-semibold select-none">{title}</h3>
+      <p className="text-muted-foreground text-sm select-none">{description}</p>
+    </Card>
   );
 }
