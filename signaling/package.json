@@ -1,0 +1,22 @@
+{
+  "name": "signaling-server",
+  "version": "1.0.0",
+  "description": "ultra-lightweight signaling server for peer discovery",
+  "main": "index.js",
+  "author": "Shubham",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "pm2": "pm2 start index.js --name p2p-chap-app-signaling -i 1 --max-memory-restart 100M"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
