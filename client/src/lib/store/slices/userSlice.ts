@@ -2,6 +2,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { nanoid } from "nanoid";
 
 import { UserInfo, UserState } from "@/types/user";
+import { WithOptional } from "@/types/util";
 
 const initialState: UserState = {
   currentUser: null,
@@ -15,15 +16,17 @@ const userSlice = createSlice({
   reducers: {
     setUser: (
       state,
-      action: PayloadAction<Omit<UserInfo, "id" | "createdAt" | "expiresAt">>,
+      action: PayloadAction<
+        WithOptional<UserInfo, "id" | "createdAt" | "expiresAt">
+      >,
     ) => {
       const now = Date.now();
 
       state.currentUser = {
         ...action.payload,
-        id: nanoid(),
-        createdAt: now,
-        expiresAt: now + 24 * 60 * 60 * 1000, // 24 hours
+        id: action.payload.id || nanoid(),
+        createdAt: action.payload.createdAt || now,
+        expiresAt: action.payload.expiresAt || now + 24 * 60 * 60 * 1000, // 24 hours
       };
       state.error = null;
     },

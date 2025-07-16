@@ -227,7 +227,7 @@ io.on("connection", (clientSocket) => {
         users.delete(currentUsername);
         connections.delete(currentUsername);
 
-        clientSocket.broadcast.emit("user-ooline", {
+        clientSocket.broadcast.emit("user-offline", {
           username: currentUsername,
         });
       }
