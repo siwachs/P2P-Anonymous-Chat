@@ -1,10 +1,15 @@
 import { configureStore } from "@reduxjs/toolkit";
+
 import userReducer from "./slices/userSlice";
+import messagesReducer from "./slices/messagesSlice";
+import connectionsReducer from "./slices/connectionsSlice";
 
 export const makeStore = () =>
   configureStore({
     reducer: {
       user: userReducer,
+      messages: messagesReducer,
+      connections: connectionsReducer,
     },
   });
 

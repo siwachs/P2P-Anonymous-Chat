@@ -18,11 +18,22 @@ interface SignalingEvents {
 
 export class SignalingClient {
   private socket: Socket | null = null;
-  private events: SignalingEvents;
+  private eventHandlers: SignalingEvents = {};
   private username: string | null = null;
 
-  constructor(events: SignalingEvents = {}) {
-    this.events = events;
+  // Set event handlers
+  setEventHandlers(handlers: SignalingEvents) {
+    this.eventHandlers = { ...this.eventHandlers, ...handlers };
+  }
+
+  // Set individual event handlers
+  on<k extends keyof SignalingEvents>(event: k, handler: SignalingEvents[k]) {
+    this.eventHandlers[event] = handler;
+  }
+
+  // Remove event handler
+  off<k extends keyof SignalingEvents>(event: k) {
+    delete this.eventHandlers[event];
   }
 
   connect(
@@ -40,51 +51,56 @@ export class SignalingClient {
     });
 
     this.socket.on("connect", () => {
+      console.log("Connected to signaling server");
       this.socket?.emit("register", { username });
     });
 
     // Registration events
     this.socket.on("register-success", (data) => {
-      this.events.onRegisterSuccess?.(data);
+      console.log("Registered successfully:", data);
+      this.eventHandlers.onRegisterSuccess?.(data);
     });
 
     this.socket.on("register-error", (error) => {
-      this.events.onRegisterError?.(error);
+      console.error("Registration failed:", error);
+      this.eventHandlers.onRegisterError?.(error);
     });
 
     // User events
     this.socket.on("users-list", (users) => {
-      this.events.onUsersUpdate?.(users);
+      this.eventHandlers.onUsersUpdate?.(users);
     });
 
     this.socket.on("user-online", (data) => {
-      this.events.onUserOnline?.(data);
+      this.eventHandlers.onUserOnline?.(data);
     });
 
     this.socket.on("user-offline", (data) => {
-      this.events.onUserOffline?.(data);
+      this.eventHandlers.onUserOffline?.(data);
     });
 
     this.socket.on("user-reconnected", (data) => {
-      this.events.onUserReconnected?.(data);
+      console.log("User reconnected:", data.username);
+      this.eventHandlers.onUserReconnected?.(data);
     });
 
     this.socket.on("user-disconnected", (data) => {
-      this.events.onUserDisconnected?.(data);
+      console.log("User disconnected:", data.username);
+      this.eventHandlers.onUserDisconnected?.(data);
     });
 
     // Signaling
     this.socket.on("signal-private", (data) => {
-      this.events.onPrivateSignal?.(data);
+      this.eventHandlers.onPrivateSignal?.(data);
     });
 
     // Typing
     this.socket.on("typing-start", (data) => {
-      this.events.onTypingStart?.(data);
+      this.eventHandlers.onTypingStart?.(data);
     });
 
     this.socket.on("typing-stop", (data) => {
-      this.events.onTypingStop?.(data);
+      this.eventHandlers.onTypingStop?.(data);
     });
 
     // Error handling
