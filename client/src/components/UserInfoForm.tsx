@@ -96,7 +96,7 @@ const UserInfoForm = () => {
           }
           required
           maxLength={20}
-          pattern="[a-zA-Z0-9_-]+"
+          pattern="[a-zA-Z0-9_\- ]+"
           title="Only letters, numbers, underscores, and hyphens allowed"
         />
         <p className="text-muted-foreground text-xs">
@@ -198,7 +198,7 @@ const UserInfoForm = () => {
             value={currentInterest}
             onChange={(e) => setCurrentInterest(e.target.value)}
             onKeyDown={(e) =>
-              e.key === "Enter" && (e.preventDefault, addInterest())
+              e.key === "Enter" && (e.preventDefault(), addInterest())
             }
             maxLength={20}
           />

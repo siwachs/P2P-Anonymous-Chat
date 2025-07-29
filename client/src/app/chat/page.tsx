@@ -1,18 +1,61 @@
 "use client";
 
-import { useAppSelector } from "@/lib/store/hooks";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/lib/store/hooks";
+import { useUserPersistence } from "@/lib/hooks/useUserPersistence";
+import { useSignalingHook } from "@/lib/hooks/useSignalingHook";
 
+import { userStorage } from "@/lib/db/userStorage";
+import { clearUser } from "@/lib/store/slices/userSlice";
+
+import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
-import { Settings, Users, MessageSquare } from "lucide-react";
+import { Settings, Users, MessageSquare, LogOut } from "lucide-react";
+
+import { countries } from "@/lib/constants/countries";
 
 export default function ChatPage() {
-  const { currentUser } = useAppSelector((state) => state.user);
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const currentUser = useUserPersistence();
 
-  if (!currentUser) return null;
+  const logout = async () => {
+    await userStorage.clearUser();
+    dispatch(clearUser());
+    router.push("/");
+  };
+
+  const joinPublicRoom = () => {
+    // TODO: Implement public room functionality
+    console.log("Join public room");
+  };
+
+  const privateChat = () => {
+    router.push("/chat/users");
+  };
+
+  const getCountryFlag = (code: string): string | undefined => {
+    const country = countries.find((country) => country.code === code);
+    return country?.flag;
+  };
+
+  if (!currentUser) return;
 
   return (
     <div className="bg-background min-h-screen">
@@ -27,9 +70,38 @@ export default function ChatPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <Button variant="ghost" size="icon">
                 <Settings className="size-5" />
               </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <LogOut className="size-5" />
+                  </Button>
+                </AlertDialogTrigger>
+
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you sure you want to logout?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will clear your local data and return you to the
+                      landing page. You&apos;ll need to set up a new username to
+                      chat again.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={logout}>
+                      Logout
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>
@@ -49,14 +121,18 @@ export default function ChatPage() {
               <div>
                 <h2 className="font-semibold">{currentUser.username}</h2>
                 <p className="text-muted-foreground text-sm">
-                  {currentUser.age} • {currentUser.gender}
+                  {currentUser.age} •{" "}
+                  {currentUser.gender === "prefer-not-to-say"
+                    ? "private"
+                    : currentUser.gender}
                 </p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm">
-                <span className="text-muted-foreground">Country:</span>{" "}
+              <p className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Country:</span>
+                <span>{getCountryFlag(currentUser.country)}</span>
                 {currentUser.country}
               </p>
 
@@ -74,6 +150,13 @@ export default function ChatPage() {
                   </div>
                 </div>
               )}
+
+              <div className="mt-4 border-t pt-4">
+                <p className="text-muted-foreground text-xs">
+                  Session expires:{" "}
+                  {new Date(currentUser.expiresAt).toLocaleString()}
+                </p>
+              </div>
             </div>
           </Card>
 
@@ -86,16 +169,26 @@ export default function ChatPage() {
                 size="lg"
                 className="flex h-auto flex-col gap-2 py-6"
                 variant="outline"
+                onClick={joinPublicRoom}
+                disabled
               >
                 <Users className="size-8" />
                 <span>Join Public Room</span>
-                <span>Chat with multiple people</span>
+                <span className="text-muted-foreground text-xs">
+                  Coming soon...
+                </span>
               </Button>
 
-              <Button size="lg" className="flex h-auto flex-col gap-2 py-6">
+              <Button
+                size="lg"
+                className="flex h-auto flex-col gap-2 py-6"
+                onClick={privateChat}
+              >
                 <MessageSquare className="size-8" />
                 <span>Private Chat</span>
-                <span>1-on-1 conversation</span>
+                <span className="text-muted-foreground text-xs">
+                  1-on-1 conversation
+                </span>
               </Button>
             </div>
           </Card>

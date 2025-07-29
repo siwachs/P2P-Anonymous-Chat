@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { useUserPersistence } from "@/lib/hooks/useUserPersistence";
+import { ReactNode } from "react";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card } from "@/components/ui/card";
@@ -11,13 +9,6 @@ import UserInfoForm from "@/components/UserInfoForm";
 import { Shield, Lock, Users, Globe } from "lucide-react";
 
 export default function LandingPage() {
-  const router = useRouter();
-  const currentUser = useUserPersistence();
-
-  useEffect(() => {
-    if (currentUser) router.replace("chat");
-  }, [currentUser, router]);
-
   return (
     <div className="from-background via-background to-muted min-h-screen bg-gradient-to-br">
       <div className="container mx-auto px-4 py-8">

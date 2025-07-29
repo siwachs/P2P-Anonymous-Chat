@@ -3,6 +3,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./slices/userSlice";
 import messagesReducer from "./slices/messagesSlice";
 import connectionsReducer from "./slices/connectionsSlice";
+import onlineUsersReducer from "./slices/onlineUsersSlice";
 
 export const makeStore = () =>
   configureStore({
@@ -10,6 +11,7 @@ export const makeStore = () =>
       user: userReducer,
       messages: messagesReducer,
       connections: connectionsReducer,
+      onlineUsers: onlineUsersReducer,
     },
   });
 
