@@ -4,9 +4,9 @@ export type Age =
   | "35-44"
   | "45-54"
   | "55+"
-  | "prefer-not-to-say";
+  | "Prefer not to say";
 
-export type Gender = "male" | "female" | "other" | "prefer-not-to-say";
+export type Gender = "Male" | "Female" | "Others" | "Prefer not to say";
 
 export interface UserInfo {
   id: string;

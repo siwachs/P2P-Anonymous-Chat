@@ -1,8 +1,12 @@
+import { Age, Gender } from "./user";
+
 export interface OnlineUser {
   username: string;
   status: "online" | "busy" | "away";
-  country?: "string";
-  intrests?: string[];
+  age: Age;
+  gender: Gender;
+  country: "string";
+  interests: string[];
   connectedAt: number;
 }
 

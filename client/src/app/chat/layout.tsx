@@ -9,9 +9,9 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const currentUser = useUserPersistence();
 
-  // useEffect(() => {
-  //   if (!currentUser) router.replace("/");
-  // }, [currentUser, router]);
+  useEffect(() => {
+    if (!currentUser) router.replace("/");
+  }, [currentUser, router]);
 
   if (!currentUser)
     return (

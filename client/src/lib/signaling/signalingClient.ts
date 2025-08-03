@@ -1,18 +1,18 @@
 import { io, Socket } from "socket.io-client";
 
+import { OnlineUser } from "@/types/onlineUser";
+import { Age, Gender } from "@/types/user";
+
 interface SignalingEvents {
-  onUsersUpdate?: (users: Array<{ username: string; status: string }>) => void;
-  onUserOnline?: (data: { username: string }) => void;
+  onUsersUpdate?: (users: Array<OnlineUser>) => void;
+  onUserOnline?: (data: OnlineUser) => void;
   onUserOffline?: (data: { username: string }) => void;
   onUserReconnected?: (data: { username: string }) => void;
   onUserDisconnected?: (data: { username: string }) => void;
   onPrivateSignal?: (data: { fromUsername: string; signal: unknown }) => void;
   onTypingStart?: (data: { fromUsername: string }) => void;
   onTypingStop?: (data: { fromUsername: string }) => void;
-  onRegisterSuccess?: (data: {
-    username: string;
-    activeConnections: string[];
-  }) => void;
+  onRegisterSuccess?: (data: { username: string }) => void;
   onRegisterError?: (error: { message: string }) => void;
 }
 
@@ -37,12 +37,18 @@ export class SignalingClient {
   }
 
   connect(
-    username: string,
-    serverUrl: string = process.env.NEXT_PUBLIC_SERVER_URL as string,
+    data: {
+      username: string;
+      age: Age;
+      gender: Gender;
+      country: string;
+      interests: string[];
+    },
+    serverUrl: string = process.env.NEXT_PUBLIC_SIGNALING_URL as string,
   ) {
     if (this.socket?.connected) this.socket.disconnect();
 
-    this.username = username;
+    this.username = data.username;
     this.socket = io(serverUrl, {
       transports: ["websocket"],
       reconnection: true,
@@ -52,7 +58,7 @@ export class SignalingClient {
 
     this.socket.on("connect", () => {
       console.log("Connected to signaling server");
-      this.socket?.emit("register", { username });
+      this.socket?.emit("register", data);
     });
 
     // Registration events

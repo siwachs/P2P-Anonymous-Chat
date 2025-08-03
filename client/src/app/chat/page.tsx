@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/lib/store/hooks";
 import { useUserPersistence } from "@/lib/hooks/useUserPersistence";
-import { useSignalingHook } from "@/lib/hooks/useSignalingHook";
 
+import { getCountryViaCode } from "@/lib/utils";
 import { userStorage } from "@/lib/db/userStorage";
 import { clearUser } from "@/lib/store/slices/userSlice";
 
@@ -28,11 +27,10 @@ import { Badge } from "@/components/ui/badge";
 
 import { Settings, Users, MessageSquare, LogOut } from "lucide-react";
 
-import { countries } from "@/lib/constants/countries";
-
 export default function ChatPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+
   const currentUser = useUserPersistence();
 
   const logout = async () => {
@@ -50,12 +48,9 @@ export default function ChatPage() {
     router.push("/chat/users");
   };
 
-  const getCountryFlag = (code: string): string | undefined => {
-    const country = countries.find((country) => country.code === code);
-    return country?.flag;
-  };
-
   if (!currentUser) return;
+
+  const country = getCountryViaCode(currentUser.country);
 
   return (
     <div className="bg-background min-h-screen">
@@ -122,7 +117,7 @@ export default function ChatPage() {
                 <h2 className="font-semibold">{currentUser.username}</h2>
                 <p className="text-muted-foreground text-sm">
                   {currentUser.age} •{" "}
-                  {currentUser.gender === "prefer-not-to-say"
+                  {currentUser.gender === "Prefer not to say"
                     ? "private"
                     : currentUser.gender}
                 </p>
@@ -132,8 +127,10 @@ export default function ChatPage() {
             <div className="space-y-2">
               <p className="flex items-center gap-2 text-sm">
                 <span className="text-muted-foreground">Country:</span>
-                <span>{getCountryFlag(currentUser.country)}</span>
-                {currentUser.country}
+                <span>{country.flag}</span>
+                <span>
+                  {country.name} ({currentUser.country})
+                </span>
               </p>
 
               {currentUser.interests.length > 0 && (
@@ -190,6 +187,16 @@ export default function ChatPage() {
                   1-on-1 conversation
                 </span>
               </Button>
+            </div>
+
+            <div className="bg-muted mt-6 rounded-lg p-4">
+              <h3 className="mb-2 font-medium">🔒 Your Privacy is Protected</h3>
+              <ul className="text-muted-foreground space-y-1 text-sm">
+                <li>• All messages are end-to-end encrypted</li>
+                <li>• No chat history is stored on servers</li>
+                <li>• Direct peer-to-peer connections</li>
+                <li>• Anonymous - no personal data required</li>
+              </ul>
             </div>
           </Card>
         </div>

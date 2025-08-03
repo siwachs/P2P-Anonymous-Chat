@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { SignalingClient } from "@/lib/signaling/signalingClient";
+import { toast } from "sonner";
 
+import { clearUser } from "@/lib/store/slices/userSlice";
 import {
   setOnlineUsers,
   addOnlineUser,
@@ -28,18 +30,26 @@ export const useSignalingHook = () => {
       onUsersUpdate(users) {
         const onlineUsers: OnlineUser[] = users.map((user) => ({
           username: user.username,
-          status: user.status as OnlineUser["status"],
+          age: user.age,
+          gender: user.gender,
+          country: user.country,
+          interests: user.interests,
+          status: user.status,
           connectedAt: Date.now(),
         }));
 
         dispatch(setOnlineUsers(onlineUsers));
       },
 
-      onUserOnline: ({ username }) => {
+      onUserOnline: (user) => {
         dispatch(
           addOnlineUser({
-            username,
-            status: "online",
+            username: user.username,
+            age: user.age,
+            gender: user.gender,
+            country: user.country,
+            interests: user.interests,
+            status: user.status,
             connectedAt: Date.now(),
           }),
         );
@@ -61,17 +71,32 @@ export const useSignalingHook = () => {
         dispatch(setTypingUser({ username: fromUsername, isTyping: false }));
       },
 
-      onRegisterSuccess: () => {
+      onRegisterSuccess: ({ username }) => {
+        toast("Connected Successfully! ✅", {
+          description: `You are now online as ${username || currentUser.username}`,
+        });
         dispatch(setConnectionStatus(true));
       },
 
-      onRegisterError: (error) => {
-        console.error("Registration failed:", error);
+      onRegisterError: ({ message }) => {
+        toast.error("Connection Failed ❌", {
+          description:
+            message ||
+            "Failed to connect to signaling server. Please try again.",
+        });
+        dispatch(clearUser());
         dispatch(setConnectionStatus(false));
+        dispatch(setOnlineUsers([]));
       },
     });
 
-    client.connect(currentUser.username);
+    client.connect({
+      username: currentUser.username,
+      age: currentUser.age,
+      gender: currentUser.gender,
+      country: currentUser.country,
+      interests: currentUser.interests,
+    });
 
     signalingRef.current = client;
   }, [currentUser, dispatch]);

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/lib/store/hooks";
+import { useSignalingHook } from "@/lib/hooks/useSignalingHook";
 
 import { setUser } from "@/lib/store/slices/userSlice";
 
@@ -27,6 +28,7 @@ const UserInfoForm = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
+  const { isConnected } = useSignalingHook();
   const [formData, setFormData] = useState({
     username: "",
     age: "",
@@ -36,6 +38,10 @@ const UserInfoForm = () => {
   });
   const [currentInterest, setCurrentInterest] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isConnected) router.replace("/chat");
+  }, [isConnected, router]);
 
   const submitUserInfo = async (e: FormEvent) => {
     e.preventDefault();
@@ -53,8 +59,6 @@ const UserInfoForm = () => {
           interests: formData.interests,
         }),
       );
-
-      router.replace("/chat");
     } catch (error) {
       console.error("Error setting user:", error);
     }
@@ -146,10 +150,10 @@ const UserInfoForm = () => {
             </SelectTrigger>
 
             <SelectContent>
-              <SelectItem value="male">Male</SelectItem>
-              <SelectItem value="female">Female</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-              <SelectItem value="prefer-not-to-say">
+              <SelectItem value="Male">Male</SelectItem>
+              <SelectItem value="Female">Female</SelectItem>
+              <SelectItem value="Others">Other</SelectItem>
+              <SelectItem value="Prefer not to say">
                 Prefer not to say
               </SelectItem>
             </SelectContent>
@@ -172,11 +176,17 @@ const UserInfoForm = () => {
           </SelectTrigger>
 
           <SelectContent>
-            {countries.map((country) => (
-              <SelectItem key={country.code} value={country.code}>
-                {country.flag} {country.name}
-              </SelectItem>
-            ))}
+            {Object.keys(countries)
+              .sort()
+              .map((key) => {
+                const country = countries[key];
+
+                return (
+                  <SelectItem key={country.code} value={country.code}>
+                    {country.flag} {country.name}
+                  </SelectItem>
+                );
+              })}
           </SelectContent>
         </Select>
       </div>

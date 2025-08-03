@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 
 import { StoreProvider } from "./StoreProvider";
 import { ThemeProvider } from "./ThemeProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
@@ -11,7 +12,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <StoreProvider>{children}</StoreProvider>
+      <StoreProvider>
+        {children}
+        <Toaster position="top-center" />
+      </StoreProvider>
     </ThemeProvider>
   );
 }

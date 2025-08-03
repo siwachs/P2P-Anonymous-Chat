@@ -26,7 +26,6 @@ const users = new Map(); // username -> {socketId, status, joinedAt}
 const socketToUsername = new Map(); // socketId -> username
 const rooms = new Map(); // roomId -> Set of usernames
 const typingUsers = new Map(); // username -> set of target username
-const connections = new Map(); // username -> set of connected usernames
 
 app.get("/health", (req, res) => {
   res.json({
@@ -42,6 +41,10 @@ io.on("connection", (clientSocket) => {
 
   clientSocket.on("register", (data) => {
     const username = data.username?.trim();
+    const age = data.age;
+    const gender = data.gender;
+    const country = data.country;
+    const interests = data.interests || [];
 
     if (!username || username.length > 20)
       return clientSocket.emit("register-error", {
@@ -59,6 +62,10 @@ io.on("connection", (clientSocket) => {
       socketToUsername.delete(existingUser.socketId);
     } else {
       users.set(username, {
+        age,
+        gender,
+        country,
+        interests,
         socketId: clientSocket.id,
         status: "online",
         joinedAt: Date.now(),
@@ -68,32 +75,20 @@ io.on("connection", (clientSocket) => {
     socketToUsername.set(clientSocket.id, username);
     currentUsername = username;
 
-    // Get user's active connections
-    const activeConnections = connections.get(username) || new set();
     clientSocket.emit("register-success", {
       username,
-      activeConnections: Array.from(activeConnections),
     });
 
-    // Notify reconnection to active connections
-    activeConnections.forEach((connectedUsername) => {
-      const connectedUser = users.get(connectedUsername);
-
-      if (connectedUsername)
-        io.to(connectedUser.socketId).emit("user-reconnected", {
-          username,
-        });
-    });
-
-    // Brodcast new user only if first time
-    if (!existingUser) clientSocket.broadcast.emit("user-online", { username });
+    // Broadcast new user only if first time
+    const onlineUser = users.get(username);
+    if (!existingUser) clientSocket.broadcast.emit("user-online", onlineUser);
 
     // Send current online users
     const onlineUsers = Array.from(users.entries()).map(([username, data]) => ({
       username,
-      status: data.status,
+      ...data,
     }));
-    clientSocket.emit("user-list", onlineUsers);
+    clientSocket.emit("users-list", onlineUsers);
   });
 
   // 1-to-1 signaling using username ie private message
@@ -107,14 +102,6 @@ io.on("connection", (clientSocket) => {
         message: "User offline",
         username: toUsername,
       });
-
-    // Track connection
-    if (!connections.has(currentUsername))
-      connections.set(currentUsername, new Set());
-    if (!connections.has(toUsername)) connections.set(toUsername, new Set());
-
-    connections.get(currentUsername).add(toUsername);
-    connections.get(toUsername).add(currentUsername);
 
     // Send signal
     io.to(targetUser.socketId).emit("signal-private", {
@@ -177,7 +164,7 @@ io.on("connection", (clientSocket) => {
     const targetUser = users.get(targetUsername);
     if (!targetUser) return;
 
-    typingUsers.get(currentUsername)?.delete(targetUser);
+    typingUsers.get(currentUsername)?.delete(targetUsername);
 
     if (typingUsers.get(currentUsername)?.size === 0)
       typingUsers.delete(currentUsername);
@@ -193,19 +180,9 @@ io.on("connection", (clientSocket) => {
 
     // Mark as offline and keep username reserved for reconnection
     const user = users.get(currentUsername);
-    if (user) user.set(currentUsername, { ...user, status: "offline" });
+    if (user) users.set(currentUsername, { ...user, status: "offline" });
 
     socketToUsername.delete(clientSocket.id);
-
-    // Notify connected users abot disconnect
-    const userConnections = connections.get(currentUsername) || new Set();
-    userConnections.forEach((connectedUsername) => {
-      const connectedUser = users.get(connectedUsername);
-      if (connectedUser && connectedUser.status === "online")
-        io.emit(connectedUser.socketId).emit("user-disconnect", {
-          username: currentUsername,
-        });
-    });
 
     // Remove from rooms
     rooms.forEach((members, roomId) => {
@@ -220,13 +197,13 @@ io.on("connection", (clientSocket) => {
     // Clear typing status
     typingUsers.delete(currentUsername);
 
-    // Clean up completly after timeout (5 minutes)
+    // Clean up completely after timeout (5 minutes)
     setTimeout(() => {
       const user = users.get(currentUsername);
       if (user && user.status === "offline") {
         users.delete(currentUsername);
-        connections.delete(currentUsername);
 
+        // Notify everyone user is offline
         clientSocket.broadcast.emit("user-offline", {
           username: currentUsername,
         });
