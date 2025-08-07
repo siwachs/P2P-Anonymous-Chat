@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUserPersistence } from "@/lib/hooks/useUserPersistence";
-import { useSignalingHook } from "@/lib/hooks/useSignalingHook";
+import { useSignaling } from "@/lib/hooks/useSignaling";
 
 import { getCountryViaCode } from "@/lib/utils";
 
@@ -42,8 +42,8 @@ export default function OnlineUsersPage() {
   >("all");
   const [countryFilter, setCountryFilter] = useState("all");
 
-  const currentUser = useUserPersistence();
-  const { onlineUsers, isConnected } = useSignalingHook();
+  const { currentUser } = useUserPersistence();
+  const { onlineUsers, isConnected } = useSignaling();
 
   const filteredUsers = useMemo(() => {
     return onlineUsers.filter((user) => {

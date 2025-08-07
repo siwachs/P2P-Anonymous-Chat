@@ -15,7 +15,7 @@ import { setTypingUser } from "@/lib/store/slices/messagesSlice";
 
 import { OnlineUser } from "@/types/onlineUser";
 
-export const useSignalingHook = () => {
+export const useSignaling = () => {
   const signalingRef = useRef<SignalingClient | null>(null);
   const dispatch = useAppDispatch();
 

@@ -3,7 +3,7 @@
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/lib/store/hooks";
-import { useSignalingHook } from "@/lib/hooks/useSignalingHook";
+import { useUserPersistence } from "@/lib/hooks/useUserPersistence";
 
 import { setUser } from "@/lib/store/slices/userSlice";
 
@@ -27,8 +27,8 @@ import { countries } from "@/lib/constants/countries";
 const UserInfoForm = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { currentUser } = useUserPersistence();
 
-  const { isConnected } = useSignalingHook();
   const [formData, setFormData] = useState({
     username: "",
     age: "",
@@ -40,8 +40,8 @@ const UserInfoForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isConnected) router.replace("/chat");
-  }, [isConnected, router]);
+    if (currentUser) router.replace("/chat");
+  }, [currentUser, router]);
 
   const submitUserInfo = async (e: FormEvent) => {
     e.preventDefault();

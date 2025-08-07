@@ -31,7 +31,7 @@ export default function ChatPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  const currentUser = useUserPersistence();
+  const { currentUser } = useUserPersistence();
 
   const logout = async () => {
     await userStorage.clearUser();

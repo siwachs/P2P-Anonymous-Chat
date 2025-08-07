@@ -6,7 +6,7 @@ import { WithOptional } from "@/types/util";
 
 const initialState: UserState = {
   currentUser: null,
-  isLoading: false,
+  isLoading: true,
   error: null,
 };
 
@@ -14,6 +14,10 @@ const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
+
     setUser: (
       state,
       action: PayloadAction<
@@ -47,5 +51,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { setUser, updateUser, clearUser } = userSlice.actions;
+export const { setLoading, setUser, updateUser, clearUser } = userSlice.actions;
 export default userSlice.reducer;
