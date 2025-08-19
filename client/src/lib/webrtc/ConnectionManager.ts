@@ -22,10 +22,10 @@ interface ConnectionManagerConfig {
 }
 
 export class ConnectionManager {
-  private connections: Map<string, PeerConnection> = new Map();
-  private config: ConnectionManagerConfig;
-  private signalingClient: SignalingClient;
-  private store: AppStore;
+  private readonly connections: Map<string, PeerConnection> = new Map();
+  private readonly config: ConnectionManagerConfig;
+  private readonly signalingClient: SignalingClient;
+  private readonly store: AppStore;
 
   constructor(config: ConnectionManagerConfig) {
     this.config = config;
@@ -228,7 +228,7 @@ export class ConnectionManager {
 
   sendTyping(targetUsername: string, isTyping: boolean) {
     const connection = this.connections.get(targetUsername);
-    if (connection && connection.isConnected) {
+    if (connection?.isConnected) {
       connection.sendTyping(isTyping);
     }
   }

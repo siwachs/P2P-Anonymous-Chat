@@ -76,7 +76,7 @@ export default function OnlineUsersPage() {
   const availableCountries = useMemo(() => {
     const countryCodes = [...new Set(onlineUsers.map((user) => user.country))];
 
-    return countryCodes.sort();
+    return countryCodes.sort((a, b) => a.localeCompare(b));
   }, [onlineUsers]);
 
   const hasActiveFilters =
@@ -245,10 +245,10 @@ export default function OnlineUsersPage() {
 function UserCard({
   user,
   onClick,
-}: {
+}: Readonly<{
   user: OnlineUser;
   onClick: () => void;
-}) {
+}>) {
   const country = getCountryViaCode(user.country);
 
   return (
@@ -288,7 +288,14 @@ function UserCard({
 
           {/* User details */}
           <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <span>{user.age}</span>
+            {user.age === "Prefer not to say" ? (
+              <div className="flex items-center gap-1">
+                <Shield className="size-3" />
+                <span>Private</span>
+              </div>
+            ) : (
+              <span>{user.age}</span>
+            )}
             <span>•</span>
             <div className="flex items-center gap-1">
               {user.gender === "Male" ? (
@@ -300,7 +307,9 @@ function UserCard({
               ) : (
                 <Shield className="size-3" />
               )}
-              <span>{user.gender}</span>
+              <span>
+                {user.gender === "Prefer not to say" ? "Private" : user.gender}
+              </span>
             </div>
           </div>
 

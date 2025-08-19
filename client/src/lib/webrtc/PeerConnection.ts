@@ -28,7 +28,7 @@ export type PeerConnectionState =
 export class PeerConnection extends EventEmitter {
   private pc: RTCPeerConnection;
   private dataChannel: RTCDataChannel | null = null;
-  private config: PeerConnectionConfig;
+  private readonly config: PeerConnectionConfig;
   private state: PeerConnectionState = "new";
   private reconnectTimer: NodeJS.Timeout | null = null;
   private messageQueue: unknown[] = [];

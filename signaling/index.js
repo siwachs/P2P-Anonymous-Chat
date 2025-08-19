@@ -3,6 +3,8 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 
+import { config } from "./config/environment.js";
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -10,7 +12,7 @@ app.use(express.json());
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NODE_ENV === "development" ? "*" : process.env.CORS_URL,
+    origin: config.NODE_ENV === "development" ? "*" : config.CORS_URL,
     methods: ["GET", "POST"],
   },
 
@@ -23,7 +25,6 @@ const io = new Server(httpServer, {
 });
 
 const users = new Map(); // username -> {socketId, status, joinedAt}
-const socketToUsername = new Map(); // socketId -> username
 const rooms = new Map(); // roomId -> Set of usernames
 const typingUsers = new Map(); // username -> set of target username
 
@@ -52,16 +53,15 @@ io.on("connection", (clientSocket) => {
       });
 
     const existingUser = users.get(username);
-    if (existingUser) {
+    if (existingUser)
       users.set(username, {
         ...existingUser,
         socketId: clientSocket.id,
         status: "online",
       });
-
-      socketToUsername.delete(existingUser.socketId);
-    } else {
+    else
       users.set(username, {
+        username,
         age,
         gender,
         country,
@@ -70,9 +70,7 @@ io.on("connection", (clientSocket) => {
         status: "online",
         joinedAt: Date.now(),
       });
-    }
 
-    socketToUsername.set(clientSocket.id, username);
     currentUsername = username;
 
     clientSocket.emit("register-success", {
@@ -182,8 +180,6 @@ io.on("connection", (clientSocket) => {
     const user = users.get(currentUsername);
     if (user) users.set(currentUsername, { ...user, status: "offline" });
 
-    socketToUsername.delete(clientSocket.id);
-
     // Remove from rooms
     rooms.forEach((members, roomId) => {
       if (members.has(currentUsername)) {
@@ -225,9 +221,8 @@ setInterval(() => {
   });
 }, 60000); // Every minute
 
-const PORT = process.env.PORT || 8000;
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Signaling server running on port ${PORT}`);
+httpServer.listen(config.PORT, () => {
+  console.log(`🚀 Signaling server running on port ${config.PORT}`);
   console.log(
     `📊 Memory usage: ${process.memoryUsage().heapUsed / 1024 / 1024} MB`
   );

@@ -128,7 +128,7 @@ const UserInfoForm = () => {
               <SelectItem value="35-44">35-44</SelectItem>
               <SelectItem value="45-54">45-54</SelectItem>
               <SelectItem value="55+">55+</SelectItem>
-              <SelectItem value="prefer-not-to-say">
+              <SelectItem value="Prefer not to say">
                 Prefer not to say
               </SelectItem>
             </SelectContent>
@@ -177,7 +177,9 @@ const UserInfoForm = () => {
 
           <SelectContent>
             {Object.keys(countries)
-              .sort()
+              .sort((a, b) =>
+                countries[a].name.localeCompare(countries[b].name),
+              )
               .map((key) => {
                 const country = countries[key];
 
@@ -194,9 +196,11 @@ const UserInfoForm = () => {
       {/* Interests */}
       <div className="space-y-2">
         <Label htmlFor="interests">
-          Interests (Optional)
-          <span className="text-muted-foreground ml-2">
-            {formData.interests.length}/5
+          <span className="flex items-center gap-2">
+            <span>Interests (Optional)</span>
+            <span className="text-muted-foreground">
+              {formData.interests.length}/5
+            </span>
           </span>
         </Label>
 
@@ -207,9 +211,12 @@ const UserInfoForm = () => {
             placeholder="e.g., Gaming, Music, Tech"
             value={currentInterest}
             onChange={(e) => setCurrentInterest(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && (e.preventDefault(), addInterest())
-            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addInterest();
+              }
+            }}
             maxLength={20}
           />
           <Button
@@ -231,7 +238,7 @@ const UserInfoForm = () => {
                 <button
                   type="button"
                   onClick={() => removeInterest(index)}
-                  className="hover:text-destructive ml-1"
+                  className="hover:text-destructive ml-1 cursor-pointer"
                 >
                   <X className="size-3" />
                 </button>
