@@ -121,34 +121,6 @@
   }
 }
 
-/* Typing indicator animation */
-@keyframes bounce {
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-  }
-  30% {
-    transform: translateY(-10px);
-  }
-}
-
-.animate-bounce {
-  animation: bounce 1.4s infinite;
-}
-
-.animate-delay-0 {
-  animation-delay: 0ms;
-}
-
-.animate-delay-100 {
-  animation-delay: 150ms;
-}
-
-.animate-delay-300 {
-  animation-delay: 300ms;
-}
-
 /* Custom scrollbar for messages */
 .scrollbar-thin {
   scrollbar-width: thin;

@@ -204,7 +204,7 @@ export class PeerConnection extends EventEmitter {
   }) {
     try {
       switch (signal.type) {
-        case "offer":
+        case "offer": {
           await this.pc.setRemoteDescription(
             new RTCSessionDescription(signal.offer),
           );
@@ -212,6 +212,7 @@ export class PeerConnection extends EventEmitter {
           await this.pc.setLocalDescription(answer);
           this.config.onSignal({ type: "answer", answer });
           break;
+        }
 
         case "answer":
           await this.pc.setRemoteDescription(

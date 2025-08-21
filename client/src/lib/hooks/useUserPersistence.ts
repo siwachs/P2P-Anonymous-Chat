@@ -1,12 +1,10 @@
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 
 import { userStorage } from "@/lib/db/userStorage";
 import { setLoading, setUser } from "@/lib/store/slices/userSlice";
 
 export const useUserPersistence = () => {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const { isLoading, currentUser } = useAppSelector((state) => state.user);
 
@@ -25,10 +23,6 @@ export const useUserPersistence = () => {
 
     if (!currentUser) loadUser();
   }, [dispatch, currentUser]);
-
-  useEffect(() => {
-    if (!isLoading && !currentUser) router.replace("/");
-  }, [isLoading, currentUser, router]);
 
   useEffect(() => {
     if (currentUser) userStorage.saveUser(currentUser).catch(console.error);
