@@ -8,6 +8,16 @@ export interface Message {
   status: "pending" | "sent" | "delivered" | "failed";
 }
 
+export interface EncryptionKey {
+  id: string;
+  conversationId: string;
+  publicKey: string;
+  privateKey: string;
+  sharedSecret?: string;
+  createdAt: number;
+  expiresAt?: number;
+}
+
 export interface MessageState {
   messages: Record<string, Message>; // messageId -> message
   conversationMessages: Record<string, string[]>; // conversationId -> messageIds
