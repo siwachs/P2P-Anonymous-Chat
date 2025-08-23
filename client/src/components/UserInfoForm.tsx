@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent } from "react";
 import { useAppDispatch } from "@/lib/store/hooks";
-import { useUserPersistence } from "@/lib/hooks/useUserPersistence";
 
 import { setUser } from "@/lib/store/slices/userSlice";
 
@@ -25,9 +23,7 @@ import { Age, Gender } from "@/types/user";
 import { countries } from "@/lib/constants/countries";
 
 const UserInfoForm = () => {
-  const router = useRouter();
   const dispatch = useAppDispatch();
-  const { currentUser } = useUserPersistence();
 
   const [formData, setFormData] = useState({
     username: "",
@@ -38,10 +34,6 @@ const UserInfoForm = () => {
   });
   const [currentInterest, setCurrentInterest] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (currentUser) router.replace("/chat");
-  }, [currentUser, router]);
 
   const submitUserInfo = async (e: FormEvent) => {
     e.preventDefault();

@@ -2,9 +2,11 @@ import { ReactNode } from "react";
 
 import { StoreProvider } from "./StoreProvider";
 import { ThemeProvider } from "./ThemeProvider";
+import { AuthProvider } from "./AuthProvider";
+import { P2PProvider } from "./P2PProvider";
 import { Toaster } from "@/components/ui/sonner";
 
-export function AppProviders({ children }: { children: ReactNode }) {
+export function AppProviders({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <ThemeProvider
       attribute="class"
@@ -13,8 +15,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
       disableTransitionOnChange
     >
       <StoreProvider>
-        {children}
-        <Toaster position="top-center" />
+        <AuthProvider>
+          <P2PProvider>
+            {children}
+            <Toaster position="top-center" />
+          </P2PProvider>
+        </AuthProvider>
       </StoreProvider>
     </ThemeProvider>
   );

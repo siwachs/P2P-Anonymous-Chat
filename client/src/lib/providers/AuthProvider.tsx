@@ -1,0 +1,37 @@
+"use client";
+
+import { ReactNode, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useUserPersistence } from "@/lib/hooks";
+
+import { Loader2 } from "lucide-react";
+
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isLoading, currentUser } = useUserPersistence();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!currentUser && pathname.startsWith("/chat")) {
+      router.replace("/");
+    } else if (currentUser && pathname === "/") {
+      router.replace("/chat");
+    }
+  }, [isLoading, currentUser, router, pathname]);
+
+  if (isLoading)
+    return (
+      <div className="bg-background flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="text-primary size-8 animate-spin" />
+          <div className="text-muted-foreground text-sm font-medium">
+            Loading user data...
+          </div>
+        </div>
+      </div>
+    );
+
+  return <>{children}</>;
+}

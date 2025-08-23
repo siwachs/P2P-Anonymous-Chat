@@ -69,11 +69,11 @@ function FeatureCard({
   icon,
   title,
   description,
-}: {
+}: Readonly<{
   icon: ReactNode;
   title: string;
   description: string;
-}) {
+}>) {
   return (
     <Card className="p-4 text-center transition-shadow hover:shadow-lg">
       <div className="text-primary mb-2 flex justify-center">{icon}</div>

@@ -11,7 +11,6 @@ export const useUserPersistence = () => {
   useEffect(() => {
     async function loadUser() {
       try {
-        dispatch(setLoading(true));
         const savedUser = await userStorage.getCurrentUser();
         if (savedUser) dispatch(setUser(savedUser));
       } catch (error) {
@@ -21,8 +20,8 @@ export const useUserPersistence = () => {
       dispatch(setLoading(false));
     }
 
-    if (!currentUser) loadUser();
-  }, [dispatch, currentUser]);
+    loadUser();
+  }, [dispatch]);
 
   useEffect(() => {
     if (currentUser) userStorage.saveUser(currentUser).catch(console.error);
