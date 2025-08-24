@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { nanoid } from "nanoid";
+import { isDeepEqual } from "@/lib/utils";
 
 import { UserInfo, UserState } from "@/types/user";
 import { WithOptional } from "@/types/util";
@@ -9,6 +10,8 @@ const initialState: UserState = {
   isLoading: true,
   error: null,
 };
+
+const USER_EXPIRES_IN = 24 * 60 * 60 * 1000; // 24 hour
 
 const userSlice = createSlice({
   name: "user",
@@ -25,13 +28,15 @@ const userSlice = createSlice({
       >,
     ) => {
       const now = Date.now();
-
-      state.currentUser = {
+      const newUser = {
         ...action.payload,
         id: action.payload.id || nanoid(),
         createdAt: action.payload.createdAt || now,
-        expiresAt: action.payload.expiresAt || now + 24 * 60 * 60 * 1000, // 24 hours
+        expiresAt: action.payload.expiresAt || now + USER_EXPIRES_IN,
       };
+
+      if (!state.currentUser || !isDeepEqual(state.currentUser, newUser))
+        state.currentUser = newUser;
       state.error = null;
     },
 

@@ -10,14 +10,14 @@ import { Loader2 } from "lucide-react";
 export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname();
   const { currentUser } = useAppSelector((state) => state.user);
-  const { isConnected } = useSignaling();
+  const { isConnected, signaling } = useSignaling();
   const { connectionManager } = useConnectionManager();
 
   const needsP2P = pathname.startsWith("/chat");
   const p2pRead = isConnected && connectionManager;
 
   const getLoadingMessage = () => {
-    if (!isConnected) return "Connecting to signaling server...";
+    if (!isConnected) return "Setting up signaling client...";
     if (!connectionManager) return "Setting up P2P connections...";
     return "Preparing chat...";
   };
@@ -30,6 +30,18 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
           <div className="text-muted-foreground text-sm font-medium">
             {getLoadingMessage()}
           </div>
+
+          {process.env.NODE_ENV !== "production" && (
+            <div className="mt-2 text-center text-xs text-gray-500">
+              <div>
+                Signaling: {signaling?.connectionState || "not initialized"}
+              </div>
+              <div>Connected: {isConnected ? "Yes" : "No"}</div>
+              <div>
+                Connection Manager: {connectionManager ? "Ready" : "Not ready"}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

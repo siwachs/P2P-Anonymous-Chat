@@ -40,7 +40,6 @@ export default function ChatPage() {
   };
 
   const joinPublicRoom = () => {
-    // TODO: Implement public room functionality
     console.log("Join public room");
   };
 

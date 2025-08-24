@@ -200,7 +200,7 @@ io.on("connection", (clientSocket) => {
         users.delete(currentUsername);
 
         // Notify everyone user is offline
-        clientSocket.broadcast.emit("user-offline", {
+        io.emit("user-offline", {
           username: currentUsername,
         });
       }
@@ -214,9 +214,8 @@ setInterval(() => {
   const fiveMinutes = 5 * 60 * 1000;
 
   users.forEach((user, username) => {
-    if (user.status === "offline" && now - users.joinedAt > fiveMinutes) {
+    if (user.status === "offline" && now - user.joinedAt > fiveMinutes) {
       users.delete(username);
-      connections.delete(username);
     }
   });
 }, 60000); // Every minute

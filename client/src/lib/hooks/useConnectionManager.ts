@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { useAppDispatch, useAppStore } from "@/lib/store/hooks";
-import { useUserPersistence } from "./useUserPersistence";
+import { useAppDispatch, useAppStore, useAppSelector } from "@/lib/store/hooks";
 import { useSignaling } from "./useSignaling";
 
 import { ConnectionManager } from "@/lib/webrtc/ConnectionManager";
@@ -11,11 +10,17 @@ export const useConnectionManager = () => {
   const store = useAppStore();
   const connectionManagerRef = useRef<ConnectionManager | null>(null);
 
-  const { currentUser } = useUserPersistence();
-  const { signaling } = useSignaling();
+  const { currentUser } = useAppSelector((state) => state.user);
+  const { signaling, isConnected } = useSignaling();
 
   useEffect(() => {
-    if (!currentUser || !signaling) return;
+    if (
+      !currentUser?.username ||
+      !signaling ||
+      !isConnected ||
+      connectionManagerRef.current
+    )
+      return;
 
     const connectionManager = new ConnectionManager({
       currentUsername: currentUser.username,
@@ -32,7 +37,7 @@ export const useConnectionManager = () => {
       connectionManager.disconnectAll();
       connectionManagerRef.current = null;
     };
-  }, [currentUser, signaling, dispatch, store]);
+  }, [currentUser?.username, signaling, isConnected, dispatch, store]);
 
   const sendMessage = useCallback((targetUsername: string, message: string) => {
     if (!connectionManagerRef.current)

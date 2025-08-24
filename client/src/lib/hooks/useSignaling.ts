@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { SignalingClient } from "@/lib/signaling/signalingClient";
 import { toast } from "sonner";
@@ -17,13 +17,40 @@ import { OnlineUser } from "@/types/onlineUser";
 
 export const useSignaling = () => {
   const signalingRef = useRef<SignalingClient | null>(null);
+  const isConnectingRef = useRef(false);
   const dispatch = useAppDispatch();
 
   const { currentUser } = useAppSelector((state) => state.user);
   const { users, isConnected } = useAppSelector((state) => state.onlineUsers);
 
+  const disconnect = useCallback(() => {
+    if (!signalingRef.current) return;
+
+    signalingRef.current.disconnect();
+    signalingRef.current = null;
+    isConnectingRef.current = false;
+    dispatch(setConnectionStatus(false));
+  }, [dispatch]);
+
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser?.username) {
+      return disconnect();
+    }
+
+    if (
+      signalingRef.current?.isConnected &&
+      signalingRef.current?.currentUsername === currentUser.username
+    )
+      return;
+
+    if (
+      signalingRef.current?.currentUsername &&
+      signalingRef.current?.currentUsername !== currentUser.username
+    ) {
+      disconnect();
+    }
+
+    isConnectingRef.current = true;
 
     const client = new SignalingClient();
     client.setEventHandlers({
@@ -76,6 +103,7 @@ export const useSignaling = () => {
           description: `You are now online as ${username || currentUser.username}`,
         });
         dispatch(setConnectionStatus(true));
+        isConnectingRef.current = false;
       },
 
       onRegisterError: ({ message }) => {
@@ -87,6 +115,7 @@ export const useSignaling = () => {
         dispatch(clearUser());
         dispatch(setConnectionStatus(false));
         dispatch(setOnlineUsers([]));
+        isConnectingRef.current = false;
       },
     });
 
@@ -99,12 +128,17 @@ export const useSignaling = () => {
     });
 
     signalingRef.current = client;
-  }, [currentUser, dispatch]);
+
+    return () => {
+      disconnect();
+    };
+  }, [disconnect, currentUser, dispatch]);
 
   return {
     signaling: signalingRef.current,
     onlineUsers: Object.values(users),
     isConnected,
     currentUsername: currentUser?.username,
+    disconnect,
   };
 };

@@ -1,10 +1,10 @@
 import { io, Socket } from "socket.io-client";
 
 import { OnlineUser } from "@/types/onlineUser";
-import { Age, Gender } from "@/types/user";
+import { UserInfo } from "@/types/user";
 
 interface SignalingEvents {
-  onUsersUpdate?: (users: Array<OnlineUser>) => void;
+  onUsersUpdate?: (users: OnlineUser[]) => void;
   onUserOnline?: (data: OnlineUser) => void;
   onUserOffline?: (data: { username: string }) => void;
   onUserReconnected?: (data: { username: string }) => void;
@@ -20,6 +20,7 @@ export class SignalingClient {
   private socket: Socket | null = null;
   private eventHandlers: SignalingEvents = {};
   private username: string | null = null;
+  private isConnecting: boolean = false;
 
   // Set event handlers
   setEventHandlers(handlers: SignalingEvents) {
@@ -37,16 +38,19 @@ export class SignalingClient {
   }
 
   connect(
-    data: {
-      username: string;
-      age: Age;
-      gender: Gender;
-      country: string;
-      interests: string[];
-    },
+    data: Omit<UserInfo, "id" | "createdAt" | "expiresAt">,
     serverUrl: string = process.env.NEXT_PUBLIC_SIGNALING_URL as string,
   ) {
-    if (this.socket?.connected) this.socket.disconnect();
+    if (
+      this.isConnecting ||
+      (this.socket?.connected && this.username === data.username)
+    )
+      return;
+
+    this.isConnecting = true;
+
+    if (this.socket?.connected && this.username === data.username)
+      this.socket.disconnect();
 
     this.username = data.username;
     this.socket = io(serverUrl, {
@@ -54,21 +58,63 @@ export class SignalingClient {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+      timeout: 20000,
+      forceNew: true,
     });
 
+    this.setEventListeners();
+
     this.socket.on("connect", () => {
-      console.log("Connected to signaling server");
+      console.log(`Connected to signaling server as ${data.username}`);
       this.socket?.emit("register", data);
     });
+
+    this.socket.on("disconnect", (reason) => {
+      console.log("Disconnected from signaling server:", reason);
+      this.isConnecting = false;
+
+      if (reason === "io server disconnect") {
+        this.socket?.connect();
+      }
+    });
+
+    this.socket.on("connect_error", (error) => {
+      console.error("Connection error:", error);
+      this.isConnecting = false;
+      this.eventHandlers.onRegisterError?.({
+        message: error.message || "Failed to connect to server",
+      });
+    });
+  }
+
+  private setEventListeners() {
+    if (!this.socket) return;
+
+    // Remove existing listeners to prevent duplicates
+    this.socket.off("register-success");
+    this.socket.off("register-error");
+    this.socket.off("users-list");
+    this.socket.off("user-online");
+    this.socket.off("user-offline");
+    this.socket.off("user-reconnected");
+    this.socket.off("user-disconnected");
+    this.socket.off("signal-private");
+    this.socket.off("typing-start");
+    this.socket.off("typing-stop");
+    this.socket.off("signal-error");
+    this.socket.off("error");
 
     // Registration events
     this.socket.on("register-success", (data) => {
       console.log("Registered successfully:", data);
+      this.isConnecting = false;
       this.eventHandlers.onRegisterSuccess?.(data);
     });
 
     this.socket.on("register-error", (error) => {
       console.error("Registration failed:", error);
+      this.isConnecting = false;
       this.eventHandlers.onRegisterError?.(error);
     });
 
@@ -121,30 +167,54 @@ export class SignalingClient {
 
   // Send Signal to a user by username
   sendSignal(toUsername: string, signal: unknown) {
+    if (!this.socket?.connected) {
+      console.warn("Cannot send signal: not connected");
+      return false;
+    }
+
     this.socket?.emit("signal-private", { toUsername, signal });
+    return true;
   }
 
   // Typing indicators by username
   startTyping(toUsername: string) {
+    if (!this.socket?.connected) return false;
+
     this.socket?.emit("typing-start", toUsername);
+    return true;
   }
 
   stopTyping(toUsername: string) {
+    if (!this.socket?.connected) return false;
     this.socket?.emit("typing-stop", toUsername);
+
+    return true;
   }
 
   // Room operations
   joinRoom(roomId: string) {
+    if (!this.socket?.connected) return false;
     this.socket?.emit("join-room", roomId);
+
+    return true;
   }
 
   leaveRoom(roomId: string) {
+    if (!this.socket?.connected) return false;
     this.socket?.emit("leave-room", roomId);
+
+    return true;
   }
 
   disconnect() {
-    this.socket?.disconnect();
-    this.socket = null;
+    this.isConnecting = false;
+
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket.off();
+      this.socket = null;
+    }
+
     this.username = null;
   }
 
@@ -154,5 +224,11 @@ export class SignalingClient {
 
   get currentUsername(): string | null {
     return this.username;
+  }
+
+  get connectionState(): "disconnected" | "connecting" | "connected" {
+    if (this.isConnecting) return "connecting";
+    if (this.socket?.connected) return "connected";
+    return "disconnected";
   }
 }
