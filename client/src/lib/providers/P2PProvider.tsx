@@ -14,7 +14,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
   const { connectionManager } = useConnectionManager();
 
   const needsP2P = pathname.startsWith("/chat");
-  const p2pRead = isConnected && connectionManager;
+  const p2pReady = !!(isConnected && connectionManager);
 
   const getLoadingMessage = () => {
     if (!isConnected) return "Setting up signaling client...";
@@ -22,7 +22,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
     return "Preparing chat...";
   };
 
-  if (needsP2P && currentUser && !p2pRead)
+  if (needsP2P && currentUser && !p2pReady)
     return (
       <div className="bg-background flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
@@ -34,11 +34,14 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
           {process.env.NODE_ENV !== "production" && (
             <div className="mt-2 text-center text-xs text-gray-500">
               <div>
-                Signaling: {signaling?.connectionState || "not initialized"}
+                Signaling Connection State: {signaling?.connectionState}
               </div>
-              <div>Connected: {isConnected ? "Yes" : "No"}</div>
               <div>
-                Connection Manager: {connectionManager ? "Ready" : "Not ready"}
+                Connected to Signaling Server: {isConnected ? "Yes" : "No"}
+              </div>
+              <div>
+                Connection Manager is:{" "}
+                {connectionManager ? "Ready" : "Not ready"}
               </div>
             </div>
           )}

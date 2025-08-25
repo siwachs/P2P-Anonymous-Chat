@@ -298,7 +298,11 @@ export class PeerConnection extends EventEmitter {
   }
 
   get isInitiator(): boolean {
-    return this.isInitiator;
+    return this.config.isInitiator;
+  }
+
+  get targetUsername(): string {
+    return this.config.targetUsername;
   }
 
   get stats() {
@@ -307,6 +311,8 @@ export class PeerConnection extends EventEmitter {
       queuedMessages: this.messageQueue.length,
       lastMessageTime: this.lastMessageTime,
       dataChannelState: this.dataChannel?.readyState || "none",
+      isInitiator: this.config.isInitiator,
+      targetUsername: this.config.targetUsername,
     };
   }
 }

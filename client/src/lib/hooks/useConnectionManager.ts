@@ -34,7 +34,7 @@ export const useConnectionManager = () => {
     connectionManagerRef.current = connectionManager;
 
     return () => {
-      connectionManager.disconnectAll();
+      connectionManager.destroy();
       connectionManagerRef.current = null;
     };
   }, [currentUser?.username, signaling, isConnected, dispatch, store]);

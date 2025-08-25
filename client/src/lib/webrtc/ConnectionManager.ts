@@ -1,4 +1,6 @@
 import { SignalingClient } from "@/lib/signaling/signalingClient";
+import { nanoid } from "nanoid";
+
 import { AppStore } from "@/lib/store";
 
 import {
@@ -19,72 +21,71 @@ interface ConnectionManagerConfig {
   signalingClient: SignalingClient;
   store: AppStore;
   onTypingUpdate: (username: string, isTyping: boolean) => void;
+
+  // Configuration options
+  reconnectDelay?: number;
+  messageDeliveryDelay?: number;
+  maxReconnectAttempts?: number;
+  connectionTimeout?: number;
 }
 
 export class ConnectionManager {
   private readonly connections: Map<string, PeerConnection> = new Map();
+  private readonly reconnectAttempts: Map<string, number> = new Map();
+  private readonly reconnectTimeouts: Map<string, NodeJS.Timeout> = new Map();
+
   private readonly config: ConnectionManagerConfig;
   private readonly signalingClient: SignalingClient;
   private readonly store: AppStore;
+  private isDestroyed: boolean = false;
+
+  // Configuration with defaults
+  private readonly RECONNECT_DELAY: number;
+  private readonly MESSAGE_DELIVERY_DELAY: number;
+  private readonly MAX_RECONNECT_ATTEMPTS: number;
+  private readonly CONNECTION_TIMEOUT: number;
 
   constructor(config: ConnectionManagerConfig) {
     this.config = config;
     this.signalingClient = config.signalingClient;
     this.store = config.store;
+
+    // Set configuration with defaults
+    this.RECONNECT_DELAY = config.reconnectDelay || 5000;
+    this.MESSAGE_DELIVERY_DELAY = config.messageDeliveryDelay || 100;
+    this.MAX_RECONNECT_ATTEMPTS = config.maxReconnectAttempts || 5;
+    this.CONNECTION_TIMEOUT = config.connectionTimeout || 20000;
+
     this.setupSignalingHandlers();
   }
 
-  private setupSignalingHandlers() {
-    // Set up event handlers on the signaling client
-    this.signalingClient.on("onPrivateSignal", ({ fromUsername, signal }) => {
-      this.handleIncomingSignal(fromUsername, signal as Signal);
-    });
-
-    this.signalingClient.on("onUserReconnected", ({ username }) => {
-      console.log(`User ${username} reconnected`);
-      if (this.connections.has(username)) {
-        this.restartConnection(username);
-      }
-    });
-
-    this.signalingClient.on("onUserDisconnected", ({ username }) => {
-      console.log(`User ${username} disconnected`);
-      const connection = this.connections.get(username);
-
-      if (connection) {
-        this.store.dispatch(
-          updateConnectionState({
-            username,
-            state: "disconnected",
-          }),
-        );
-      }
-    });
-  }
-
-  // Alternative approach: Set all handlers at once
-  setupHandlers() {
+  setupSignalingHandlers() {
     this.signalingClient.setEventHandlers({
       onPrivateSignal: ({ fromUsername, signal }) => {
+        if (this.isDestroyed) return;
+
         this.handleIncomingSignal(fromUsername, signal as Signal);
       },
+
       onUserReconnected: ({ username }) => {
+        if (this.isDestroyed) return;
+
         console.log(`User ${username} reconnected`);
-        if (this.connections.has(username)) {
-          this.restartConnection(username);
-        }
+        this.handleUserReconnected(username);
       },
+
       onUserDisconnected: ({ username }) => {
+        if (this.isDestroyed) return;
+
         console.log(`User ${username} disconnected`);
-        const connection = this.connections.get(username);
-        if (connection) {
-          this.store.dispatch(
-            updateConnectionState({
-              username,
-              state: "disconnected",
-            }),
-          );
-        }
+        this.handleUserDisconnected(username);
+      },
+
+      onUserOffline: ({ username }) => {
+        if (this.isDestroyed) return;
+
+        console.log(`User ${username} went offline`);
+        this.handleUserOffline(username);
       },
     });
   }
@@ -99,21 +100,81 @@ export class ConnectionManager {
     if (connection) await connection.handleSignal(signal);
   }
 
-  async connectToUser(targetUsername: string): Promise<void> {
-    // Check if connection already exists
-    if (this.connections.has(targetUsername)) {
-      const existing = this.connections.get(targetUsername)!;
+  private handleUserReconnected(username: string) {
+    this.reconnectAttempts.set(username, 0);
 
-      if (existing.isConnected) {
-        return console.log(
-          `Already connected to ${targetUsername} with encryption`,
-        );
-      }
+    if (this.connections.has(username)) {
+      this.restartConnection(username);
+    }
+  }
+
+  private handleUserDisconnected(username: string) {
+    const connection = this.connections.get(username);
+
+    if (connection) {
+      this.store.dispatch(
+        updateConnectionState({
+          username,
+          state: "disconnected",
+        }),
+      );
+    }
+  }
+
+  private handleUserOffline(username: string) {
+    // Clear any pending reconnect attempts
+    this.clearReconnectTimeout(username);
+    this.reconnectAttempts.delete(username);
+
+    // Close connection if exists
+    this.disconnectFromUser(username);
+  }
+
+  async connectToUser(targetUsername: string): Promise<void> {
+    if (this.isDestroyed) {
+      throw new Error("ConnectionManager has been destroyed");
     }
 
-    // Create new connection as initiator
-    const connection = await this.createConnection(targetUsername, true);
-    await connection.start();
+    // Validate input
+    if (!targetUsername || targetUsername === this.config.currentUsername) {
+      throw new Error("Invalid target username");
+    }
+
+    // Check if connection already exists
+    const existingConnection = this.connections.get(targetUsername);
+    if (existingConnection) {
+      if (existingConnection.isConnected) {
+        console.log(`Already connected to ${targetUsername}`);
+        return;
+      }
+
+      // Close and remove existing failed connection
+      existingConnection.close();
+      this.connections.delete(targetUsername);
+    }
+
+    try {
+      // Create new connection as initiator
+      const connection = await this.createConnection(targetUsername, true);
+
+      // Set connection timeout
+      const timeoutId = setTimeout(() => {
+        if (!connection.isConnected) {
+          console.warn(`Connection to ${targetUsername} timed out`);
+          this.handleConnectionError(
+            targetUsername,
+            new Error("Connection timeout"),
+          );
+        }
+      }, this.CONNECTION_TIMEOUT);
+
+      await connection.start();
+      clearTimeout(timeoutId);
+    } catch (error) {
+      console.error(`Failed to connect to ${targetUsername}:`, error);
+      this.handleConnectionError(targetUsername, error);
+      throw error;
+    }
   }
 
   private async createConnection(targetUsername: string, isInitiator: boolean) {
@@ -122,24 +183,37 @@ export class ConnectionManager {
       targetUsername,
       isInitiator,
       onSignal: (signal: unknown) => {
-        this.signalingClient.sendSignal(targetUsername, signal);
+        if (this.isDestroyed) return;
+
+        const success = this.signalingClient.sendSignal(targetUsername, signal);
+        if (!success) {
+          console.warn(`Failed to send signal to ${targetUsername}`);
+        }
       },
       onMessage: (message: Message) => {
+        if (this.isDestroyed) return;
+
         this.handleMessage(targetUsername, message);
       },
       onTyping: (isTyping: boolean) => {
+        if (this.isDestroyed) return;
+
         this.config.onTypingUpdate(targetUsername, isTyping);
       },
       onStateChange: (state: PeerConnectionState) => {
+        if (this.isDestroyed) return;
+
         this.handleStateChange(targetUsername, state);
       },
       onError: (error: unknown) => {
+        if (this.isDestroyed) return;
+
         console.error(`Connection error with ${targetUsername}:`, error);
+        this.handleConnectionError(targetUsername, error);
       },
     });
 
     this.connections.set(targetUsername, connection);
-
     this.store.dispatch(
       addConnection({
         username: targetUsername,
@@ -152,7 +226,12 @@ export class ConnectionManager {
   }
 
   private handleMessage(fromUsername: string, message: Message) {
-    const messageId = `${Date.now()}-${Math.random()}`;
+    if (!message.text || typeof message.text !== "string") {
+      console.warn(`Invalid message from ${fromUsername}:`, message);
+      return;
+    }
+
+    const messageId = nanoid();
 
     this.store.dispatch(
       addMessage({
@@ -170,36 +249,118 @@ export class ConnectionManager {
   private handleStateChange(username: string, state: PeerConnectionState) {
     this.store.dispatch(updateConnectionState({ username, state }));
 
-    // Handle connection failures
-    if (state === "failed") {
-      setTimeout(() => {
+    switch (state) {
+      case "connected":
+        this.reconnectAttempts.set(username, 0);
+        this.clearReconnectTimeout(username);
+        console.log(`Successfully connected to ${username}`);
+        break;
+
+      case "failed":
+      case "disconnected":
+        this.scheduleReconnect(username);
+        break;
+
+      case "closed":
+        this.clearReconnectTimeout(username);
+        break;
+    }
+  }
+
+  private handleConnectionError(username: string, error: unknown) {
+    console.error(`Connection error with ${username}:`, error);
+
+    this.store.dispatch(
+      updateConnectionState({
+        username,
+        state: "failed",
+      }),
+    );
+
+    this.scheduleReconnect(username);
+  }
+
+  private scheduleReconnect(username: string) {
+    const currentAttempts = this.reconnectAttempts.get(username) || 0;
+
+    if (currentAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
+      console.log(`Max reconnect attempts reached for ${username}`);
+      this.disconnectFromUser(username);
+      return;
+    }
+
+    this.clearReconnectTimeout(username);
+
+    // Calculate delay with exponential backoff
+    const delay = this.RECONNECT_DELAY * Math.pow(2, currentAttempts);
+
+    console.log(
+      `Scheduling reconnect to ${username} in ${delay}ms (attempt ${currentAttempts + 1})`,
+    );
+
+    const timeoutId = setTimeout(() => {
+      if (!this.isDestroyed && this.connections.has(username)) {
+        this.reconnectAttempts.set(username, currentAttempts + 1);
         this.restartConnection(username);
-      }, 5000);
+      }
+    }, delay);
+
+    this.reconnectTimeouts.set(username, timeoutId);
+  }
+
+  private clearReconnectTimeout(username: string) {
+    const timeoutId = this.reconnectTimeouts.get(username);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      this.reconnectTimeouts.delete(username);
     }
   }
 
   private async restartConnection(username: string) {
+    if (this.isDestroyed) return;
+
     const connection = this.connections.get(username);
     if (!connection) return;
 
     const wasInitiator = connection.isInitiator;
-    connection.close();
-    this.connections.delete(username);
 
-    // Recreate connection
-    const newConnection = await this.createConnection(username, wasInitiator);
-    if (wasInitiator) {
-      await newConnection.start();
+    try {
+      // Close existing connection
+      connection.close();
+      this.connections.delete(username);
+
+      // Create new connection
+      const newConnection = await this.createConnection(username, wasInitiator);
+
+      if (wasInitiator) {
+        await newConnection.start();
+      }
+    } catch (error) {
+      console.error(`Failed to restart connection to ${username}:`, error);
+      this.handleConnectionError(username, error);
     }
   }
 
   sendMessage(targetUsername: string, message: string) {
+    if (this.isDestroyed) {
+      throw new Error("ConnectionManager has been destroyed");
+    }
+
+    // Validate input
+    if (!message || typeof message !== "string") {
+      throw new Error("Invalid message");
+    }
+
     const connection = this.connections.get(targetUsername);
     if (!connection) {
       throw new Error(`No connection to ${targetUsername}`);
     }
 
-    const messageId = `${Date.now()}-${Math.random()}`;
+    if (!connection.isConnected) {
+      throw new Error(`Not connected to ${targetUsername}`);
+    }
+
+    const messageId = nanoid();
     this.store.dispatch(
       addMessage({
         id: messageId,
@@ -212,46 +373,139 @@ export class ConnectionManager {
       }),
     );
 
-    // Send via P2P
-    connection.sendMessage(message);
+    try {
+      // Send via P2P
+      connection.sendMessage(message);
 
-    // Update status after a short delay (simulate delivery)
-    setTimeout(() => {
+      // Update status after delivery delay
+      setTimeout(() => {
+        if (!this.isDestroyed) {
+          this.store.dispatch(
+            updateMessageStatus({
+              messageId,
+              status: "sent",
+            }),
+          );
+        }
+      }, this.MESSAGE_DELIVERY_DELAY);
+    } catch (error) {
+      console.error(`Failed to send message to ${targetUsername}:`, error);
+
+      // Update message status to failed
       this.store.dispatch(
         updateMessageStatus({
           messageId,
-          status: "sent",
+          status: "failed",
         }),
       );
-    }, 100);
+
+      throw error;
+    }
+
+    return messageId;
   }
 
   sendTyping(targetUsername: string, isTyping: boolean) {
+    if (this.isDestroyed) return false;
+
     const connection = this.connections.get(targetUsername);
+
     if (connection?.isConnected) {
-      connection.sendTyping(isTyping);
+      try {
+        connection.sendTyping(isTyping);
+        return true;
+      } catch (error) {
+        console.error(
+          `Failed to send typing indicator to ${targetUsername}:`,
+          error,
+        );
+        return false;
+      }
     }
+
+    return false;
   }
 
   disconnectFromUser(username: string) {
+    if (this.isDestroyed) return;
+
+    // Clear reconnect timeout
+    this.clearReconnectTimeout(username);
+    this.reconnectAttempts.delete(username);
+
     const connection = this.connections.get(username);
     if (connection) {
       connection.close();
       this.connections.delete(username);
       this.store.dispatch(removeConnection(username));
+      console.log(`Disconnected from ${username}`);
     }
   }
 
   disconnectAll() {
+    if (this.isDestroyed) return;
+
+    console.log(`Disconnecting all ${this.connections.size} connections`);
+
+    // Clear all timeouts
+    this.reconnectTimeouts.forEach((timeout) => clearTimeout(timeout));
+    this.reconnectTimeouts.clear();
+    this.reconnectAttempts.clear();
+
+    // Close all connections
     this.connections.forEach((connection) => connection.close());
     this.connections.clear();
   }
 
+  destroy() {
+    if (this.isDestroyed) return;
+
+    console.log("Destroying ConnectionManager");
+    this.isDestroyed = true;
+
+    // Disconnect all connections
+    this.disconnectAll();
+
+    this.signalingClient.setEventHandlers({
+      onPrivateSignal: undefined,
+      onUserReconnected: undefined,
+      onUserDisconnected: undefined,
+      onUserOffline: undefined,
+    });
+  }
+
   getConnection(username: string): PeerConnection | undefined {
-    return this.connections.get(username);
+    return this.isDestroyed ? undefined : this.connections.get(username);
   }
 
   getAllConnections(): Map<string, PeerConnection> {
-    return new Map(this.connections);
+    return this.isDestroyed ? new Map() : new Map(this.connections);
+  }
+
+  getConnectionState(username: string): PeerConnectionState | null {
+    const connection = this.getConnection(username);
+    return connection ? connection.connectionState : null;
+  }
+
+  isConnected(username: string): boolean {
+    const connection = this.getConnection(username);
+    return connection ? connection.isConnected : false;
+  }
+
+  getConnectionCount(): number {
+    return this.isDestroyed ? 0 : this.connections.size;
+  }
+
+  get isAlive(): boolean {
+    return !this.isDestroyed;
+  }
+
+  getStatus() {
+    return {
+      isDestroyed: this.isDestroyed,
+      connectionCount: this.getConnectionCount(),
+      reconnectAttempts: Object.fromEntries(this.reconnectAttempts),
+      pendingReconnects: this.reconnectTimeouts.size,
+    };
   }
 }

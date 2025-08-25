@@ -21,7 +21,7 @@ export const useSignaling = () => {
   const dispatch = useAppDispatch();
 
   const { currentUser } = useAppSelector((state) => state.user);
-  const { users, isConnected } = useAppSelector((state) => state.onlineUsers);
+  const { isConnected } = useAppSelector((state) => state.onlineUsers);
 
   const disconnect = useCallback(() => {
     if (!signalingRef.current) return;
@@ -136,7 +136,6 @@ export const useSignaling = () => {
 
   return {
     signaling: signalingRef.current,
-    onlineUsers: Object.values(users),
     isConnected,
     currentUsername: currentUser?.username,
     disconnect,

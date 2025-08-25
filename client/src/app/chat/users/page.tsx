@@ -2,8 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useUserPersistence } from "@/lib/hooks/useUserPersistence";
-import { useSignaling } from "@/lib/hooks/useSignaling";
+import { useAppSelector } from "@/lib/store/hooks";
 
 import { getCountryViaCode } from "@/lib/utils";
 
@@ -42,8 +41,9 @@ export default function OnlineUsersPage() {
   >("all");
   const [countryFilter, setCountryFilter] = useState("all");
 
-  const { currentUser } = useUserPersistence();
-  const { onlineUsers, isConnected } = useSignaling();
+  const { currentUser } = useAppSelector((state) => state.user);
+  const { users, isConnected } = useAppSelector((state) => state.onlineUsers);
+  const onlineUsers = Object.values(users);
 
   const filteredUsers = useMemo(() => {
     return onlineUsers.filter((user) => {
