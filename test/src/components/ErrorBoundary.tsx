@@ -80,5 +80,7 @@ export class ErrorBoundary extends Component<
         </div>
       );
     }
+
+    return this.props.children;
   }
 }
