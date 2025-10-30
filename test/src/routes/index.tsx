@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { PublicRoute, ProtectedRoute } from "./route-guards";
 
 import { RootLayout } from "@/layouts";
+import RouteError from "@/components/RouteError";
 
 import publicRoutes from "./public-routes";
 import protectedRoutes from "./protected-routes";
@@ -10,6 +11,7 @@ export default function AppRouter() {
   const router = createBrowserRouter([
     {
       element: <RootLayout />,
+      errorElement: <RouteError />,
       children: [
         {
           element: <PublicRoute />,

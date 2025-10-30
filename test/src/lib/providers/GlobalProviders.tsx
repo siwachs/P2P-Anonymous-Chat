@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { ThemeProvider } from "./ThemeProvider";
 
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 
 export function GlobalProviders({
   children,

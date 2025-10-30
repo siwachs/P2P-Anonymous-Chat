@@ -10,7 +10,7 @@ export function AppProviders({ children }: Readonly<{ children: ReactNode }>) {
     <GlobalProviders>
       <StoreProvider>
         {children}
-        <Toaster position="top-center" />x
+        <Toaster position="top-center" />
       </StoreProvider>
     </GlobalProviders>
   );
