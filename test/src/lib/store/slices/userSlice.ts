@@ -1,9 +1,10 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 import { nanoid } from "nanoid";
 import { isDeepEqual } from "@/lib/utils";
 
-import { UserInfo, UserState } from "@/types/user";
-import { WithOptional } from "@/types/util";
+import type {PayloadAction} from "@reduxjs/toolkit"
+import type { UserInfo, UserState } from "@/types/user";
+import type { WithOptional } from "@/types/util";
 
 const initialState: UserState = {
   currentUser: null,
