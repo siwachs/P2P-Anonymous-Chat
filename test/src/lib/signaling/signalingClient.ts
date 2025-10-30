@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
 
-import { OnlineUser } from "@/types/onlineUser";
-import { UserInfo } from "@/types/user";
+import type { OnlineUser } from "@/types/onlineUser";
+import type { UserInfo } from "@/types/user";
 
 interface SignalingEvents {
   onUsersUpdate?: (users: OnlineUser[]) => void;
@@ -39,7 +39,7 @@ export class SignalingClient {
 
   connect(
     data: Omit<UserInfo, "id" | "createdAt" | "expiresAt">,
-    serverUrl: string = process.env.NEXT_PUBLIC_SIGNALING_URL as string,
+    serverUrl: string = import.meta.env.VITE_SIGNALING_URL as string,
   ) {
     if (
       this.isConnecting ||

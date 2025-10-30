@@ -1,16 +1,20 @@
-import { ThemeProvider } from "./ThemeProvider";
-import { StoreProvider } from "./StoreProvider";
-import { Toaster } from "@/components/ui/sonner";
+import { type ReactNode } from "react";
 
-import type { ReactNode } from "react";
+import { GlobalProviders } from "./GlobalProviders";
+import { StoreProvider } from "./StoreProvider";
+
+import { Toaster } from "@/components/ui/sonner";
 
 export function AppProviders({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <GlobalProviders>
       <StoreProvider>
         {children}
-        <Toaster position="top-center" />
+        <Toaster position="top-center" />x
       </StoreProvider>
-    </ThemeProvider>
+    </GlobalProviders>
   );
 }
+
+export { RouterProviders } from "./RouterProviders";
+export { P2PProvider } from "./P2PProvider";

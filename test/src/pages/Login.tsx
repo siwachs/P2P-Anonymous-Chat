@@ -10,22 +10,22 @@ const Login = () => {
     <>
       <div className="mx-auto mb-12 grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-4">
         <FeatureCard
-          icon={<Shield className="h-6 w-6" />}
+          icon={<Shield className="size-6" />}
           title="100% Anonymous"
           description="No email or phone required"
         />
         <FeatureCard
-          icon={<Lock className="h-6 w-6" />}
+          icon={<Lock className="size-6" />}
           title="E2E Encrypted"
           description="Messages encrypted locally"
         />
         <FeatureCard
-          icon={<Users className="h-6 w-6" />}
+          icon={<Users className="size-6" />}
           title="P2P Direct"
           description="No server middleman"
         />
         <FeatureCard
-          icon={<Globe className="h-6 w-6" />}
+          icon={<Globe className="size-6" />}
           title="Global Connect"
           description="Chat with anyone, anywhere"
         />

@@ -13,7 +13,7 @@ import {
 } from "@/lib/store/slices/onlineUsersSlice";
 import { setTypingUser } from "@/lib/store/slices/messagesSlice";
 
-import { OnlineUser } from "@/types/onlineUser";
+import type { OnlineUser } from "@/types/onlineUser";
 
 export const useSignaling = () => {
   const signalingRef = useRef<SignalingClient | null>(null);

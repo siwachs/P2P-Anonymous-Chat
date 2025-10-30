@@ -6,6 +6,19 @@ import AppRouter from "./routes";
 
 import "./main.css";
 
+/**
+ * Application Entry Point
+ * 
+ * Provider Hierarchy:
+ * StrictMode
+ *   └─ AppProviders
+ *       └─ GlobalProviders (Theme, ErrorBoundary)
+ *           └─ StoreProvider (Redux)
+ *               └─ AppRouter (creates Router context)
+ *                   └─ RootLayout
+ *                       └─ RouterProviders (P2P, etc.)
+ *                           └─ Routes (PublicRoute, ProtectedRoute)
+ */
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AppProviders>

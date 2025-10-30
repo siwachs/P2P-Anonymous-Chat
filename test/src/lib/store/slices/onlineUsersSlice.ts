@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-import { OnlineUser, OnlineUsersState } from "@/types/onlineUser";
+import type { OnlineUser, OnlineUsersState } from "@/types/onlineUser";
 
 const initialState: OnlineUsersState = {
   users: {},
@@ -30,7 +30,7 @@ const onlineUsersSlice = createSlice({
 
     updateUserStatus: (
       state,
-      action: PayloadAction<{ username: string; status: OnlineUser["status"] }>,
+      action: PayloadAction<{ username: string; status: OnlineUser["status"] }>
     ) => {
       if (state.users[action.payload.username])
         state.users[action.payload.username].status = action.payload.status;
@@ -63,10 +63,10 @@ export const selectOnlineUsers = (state: { onlineUsers: OnlineUsersState }) =>
 
 export const selectOnlineUser = (
   state: { onlineUsers: OnlineUsersState },
-  username: string,
+  username: string
 ) => state.onlineUsers.users[username];
 
 export const selectIsuserOnline = (
   state: { onlineUsers: OnlineUsersState },
-  username: string,
+  username: string
 ) => !!state.onlineUsers.users[username];

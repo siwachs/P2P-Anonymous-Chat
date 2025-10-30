@@ -1,8 +1,6 @@
 import { SignalingClient } from "@/lib/signaling/signalingClient";
 import { nanoid } from "nanoid";
 
-import { AppStore } from "@/lib/store";
-
 import {
   addConnection,
   removeConnection,
@@ -13,8 +11,9 @@ import {
   updateMessageStatus,
 } from "@/lib/store/slices/messagesSlice";
 
-import { Signal } from "@/types/webRtc";
-import { Message, PeerConnection, PeerConnectionState } from "./PeerConnection";
+import type { AppStore } from "@/lib/store";
+import type { Signal } from "@/types/webRtc";
+import type { Message, PeerConnection, PeerConnectionState } from "./PeerConnection";
 
 interface ConnectionManagerConfig {
   currentUsername: string;

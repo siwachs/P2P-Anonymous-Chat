@@ -1,7 +1,6 @@
 import type { RouteObject } from "react-router-dom";
 
-import ChatLayout from "@/layouts/ChatLayout";
-import ChatUsersLayout from "@/layouts/ChatUsersLayout";
+import { ChatLayout, ChatUsersLayout } from "@/layouts";
 
 const protectedRoutes: RouteObject[] = [
   {

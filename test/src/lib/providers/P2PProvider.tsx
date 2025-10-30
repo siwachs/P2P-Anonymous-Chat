@@ -1,14 +1,12 @@
-"use client";
-
-import { ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSignaling, useConnectionManager } from "@/lib/hooks";
 
 import { Loader2 } from "lucide-react";
 
 export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const { currentUser } = useAppSelector((state) => state.user);
   const { isConnected, signaling } = useSignaling();
   const { connectionManager } = useConnectionManager();
@@ -31,7 +29,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
             {getLoadingMessage()}
           </div>
 
-          {process.env.NODE_ENV !== "production" && (
+          {import.meta.env.DEV && (
             <div className="mt-2 text-center text-xs text-gray-500">
               <div>
                 Signaling Connection State: {signaling?.connectionState}
