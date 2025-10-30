@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useAppDispatch } from "@/lib/store/hooks";
 
 import { setUser } from "@/lib/store/slices/userSlice";
@@ -19,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { X } from "lucide-react";
 
-import { Age, Gender } from "@/types/user";
+import type { Age, Gender } from "@/types/user";
 import { countries } from "@/lib/constants/countries";
 
 const UserInfoForm = () => {
@@ -49,7 +47,7 @@ const UserInfoForm = () => {
           gender: formData.gender as Gender,
           country: formData.country,
           interests: formData.interests,
-        }),
+        })
       );
     } catch (error) {
       console.error("Error setting user:", error);
@@ -170,7 +168,7 @@ const UserInfoForm = () => {
           <SelectContent>
             {Object.keys(countries)
               .sort((a, b) =>
-                countries[a].name.localeCompare(countries[b].name),
+                countries[a].name.localeCompare(countries[b].name)
               )
               .map((key) => {
                 const country = countries[key];
