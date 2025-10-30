@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { nanoid } from "nanoid";
 import { isDeepEqual } from "@/lib/utils";
 
-import type {PayloadAction} from "@reduxjs/toolkit"
+import type { PayloadAction } from "@reduxjs/toolkit";
 import type { UserInfo, UserState } from "@/types/user";
 import type { WithOptional } from "@/types/util";
 
@@ -26,7 +26,7 @@ const userSlice = createSlice({
       state,
       action: PayloadAction<
         WithOptional<UserInfo, "id" | "createdAt" | "expiresAt">
-      >,
+      >
     ) => {
       const now = Date.now();
       const newUser = {
