@@ -18,6 +18,7 @@ import type { OnlineUser } from "@/types/onlineUser";
 export const useSignaling = () => {
   const signalingRef = useRef<SignalingClient | null>(null);
   const isConnectingRef = useRef(false);
+  const hasErrorRef = useRef(false);
   const dispatch = useAppDispatch();
 
   const { currentUser } = useAppSelector((state) => state.user);
@@ -29,6 +30,7 @@ export const useSignaling = () => {
     signalingRef.current.disconnect();
     signalingRef.current = null;
     isConnectingRef.current = false;
+    hasErrorRef.current = false;
     dispatch(setConnectionStatus(false));
   }, [dispatch]);
 
@@ -43,6 +45,8 @@ export const useSignaling = () => {
     )
       return;
 
+      if(hasErrorRef.current)return;
+
     if (
       signalingRef.current?.currentUsername &&
       signalingRef.current?.currentUsername !== currentUser.username
@@ -50,9 +54,14 @@ export const useSignaling = () => {
       disconnect();
     }
 
-    isConnectingRef.current = true;
+    if(signalingRef.current && !signalingRef.current.isConnected && !isConnectingRef.current) return;
 
+    if(signalingRef.current) return;
+
+    isConnectingRef.current = true;
+    hasErrorRef.current = false;
     const client = new SignalingClient();
+
     client.setEventHandlers({
       onUsersUpdate(users) {
         const onlineUsers: OnlineUser[] = users.map((user) => ({
@@ -104,6 +113,7 @@ export const useSignaling = () => {
         });
         dispatch(setConnectionStatus(true));
         isConnectingRef.current = false;
+        hasErrorRef.current = false;
       },
 
       onRegisterError: ({ message }) => {
@@ -116,6 +126,7 @@ export const useSignaling = () => {
         dispatch(setConnectionStatus(false));
         dispatch(setOnlineUsers([]));
         isConnectingRef.current = false;
+        hasErrorRef.current = true;
       },
     });
 
@@ -130,7 +141,9 @@ export const useSignaling = () => {
     signalingRef.current = client;
 
     return () => {
-      disconnect();
+      if (!currentUser?.username || hasErrorRef.current) {
+        disconnect();
+      }
     };
   }, [disconnect, currentUser, dispatch]);
 
@@ -139,5 +152,6 @@ export const useSignaling = () => {
     isConnected,
     currentUsername: currentUser?.username,
     disconnect,
+    hasError: hasErrorRef.current,
   };
 };

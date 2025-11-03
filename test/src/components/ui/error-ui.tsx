@@ -8,11 +8,7 @@ interface ErrorUIProps {
   onReset?: () => void;
 }
 
-export default function ErrorUI({
-  error,
-  errorMessage,
-  onReset,
-}: ErrorUIProps) {
+function ErrorUI({ error, errorMessage, onReset }: ErrorUIProps) {
   const reset = () => {
     if (onReset) {
       onReset();
@@ -53,3 +49,5 @@ export default function ErrorUI({
     </div>
   );
 }
+
+export { ErrorUI };

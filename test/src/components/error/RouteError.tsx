@@ -1,8 +1,8 @@
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 
-import { ErrorUI } from "./error/ErrorUI";
+import ErrorUI from "./ErrorUI";
 
-function RouteError() {
+export default function RouteError() {
   const error = useRouteError();
 
   let errorToDisplay: Error | null = null;
@@ -19,5 +19,3 @@ function RouteError() {
 
   return <ErrorUI error={errorToDisplay} errorMessage={errorMessage} />;
 }
-
-export default RouteError;

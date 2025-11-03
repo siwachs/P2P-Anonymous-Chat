@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
-import { ErrorUI } from "./ErrorUI";
+import ErrorUI from "./ErrorUI";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -12,7 +12,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<
+export default class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {

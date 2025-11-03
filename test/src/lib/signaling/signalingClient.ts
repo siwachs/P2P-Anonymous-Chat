@@ -39,7 +39,7 @@ export class SignalingClient {
 
   connect(
     data: Omit<UserInfo, "id" | "createdAt" | "expiresAt">,
-    serverUrl: string = import.meta.env.VITE_SIGNALING_URL as string,
+    serverUrl: string = import.meta.env.VITE_SIGNALING_URL
   ) {
     if (
       this.isConnecting ||
@@ -67,6 +67,7 @@ export class SignalingClient {
 
     this.socket.on("connect", () => {
       console.log(`Connected to signaling server as ${data.username}`);
+      this.isConnecting = false;
       this.socket?.emit("register", data);
     });
 
@@ -79,12 +80,17 @@ export class SignalingClient {
       }
     });
 
-    this.socket.on("connect_error", (error) => {
-      console.error("Connection error:", error);
+    this.socket.on("reconnect_failed", () => {
+      console.error("Failed to reconnect after all attempts");
       this.isConnecting = false;
       this.eventHandlers.onRegisterError?.({
-        message: error.message || "Failed to connect to server",
+        message:
+          "Unable to connect to signaling server after multiple attempts. Please check your connection.",
       });
+    });
+
+    this.socket.on("connect_error", (error) => {
+      console.error("Connection error (Socket.IO will retry):", error);
     });
   }
 
