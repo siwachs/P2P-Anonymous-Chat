@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { SignalingClient } from "@/lib/signaling/signalingClient";
 import { toast } from "sonner";
@@ -23,12 +23,12 @@ import type { OnlineUser } from "@/types/onlineUser";
 export const useSignaling = () => {
   const signalingRef = useRef<SignalingClient | null>(null);
   const isConnectingRef = useRef(false);
-  const hasErrorRef = useRef(false);
+  const [hasError, setHasError] = useState(false);
 
   const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state) => state.user);
   const { isConnected } = useAppSelector((state) => state.onlineUsers);
-  
+
   const disconnect = useCallback(() => {
     const client = signalingRef.current;
     if (client) {
@@ -37,8 +37,8 @@ export const useSignaling = () => {
     }
 
     isConnectingRef.current = false;
-    hasErrorRef.current = false;
 
+    setHasError(false);
     dispatch(setConnectionStatus(false));
     dispatch(setOnlineUsers([]));
   }, [dispatch]);
@@ -60,7 +60,7 @@ export const useSignaling = () => {
     }
 
     // Prevent reconnect attempts after fatal error
-    if (hasErrorRef.current) return;
+    if (hasError) return;
 
     // Logged in user changed → reset previous connection
     if (
@@ -74,7 +74,6 @@ export const useSignaling = () => {
     if (isConnectingRef.current || signalingRef.current) return;
 
     isConnectingRef.current = true;
-    hasErrorRef.current = false;
 
     // Create and configure client
     const client = new SignalingClient();
@@ -123,24 +122,27 @@ export const useSignaling = () => {
       // -------------------- CONNECTION EVENTS --------------------
       onRegisterSuccess({ username }) {
         toast.success("Connected Successfully! ✅", {
-          description: `You are now online as ${username || currentUser.username}`,
+          description: `You are now online as ${
+            username || currentUser.username
+          }`,
         });
         isConnectingRef.current = false;
-        hasErrorRef.current = false;
+        setHasError(false);
         dispatch(setConnectionStatus(true));
       },
 
       onRegisterError({ message }) {
         toast.error("Connection Failed ❌", {
           description:
-            message || "Failed to connect to signaling server. Please try again.",
+            message ||
+            "Failed to connect to signaling server. Please try again.",
         });
 
         dispatch(setConnectionStatus(false));
         dispatch(setOnlineUsers([]));
 
         isConnectingRef.current = false;
-        hasErrorRef.current = true;
+        setHasError(true);
       },
 
       // -------------------- SOCKET.IO INTERNALS --------------------
@@ -156,11 +158,12 @@ export const useSignaling = () => {
             "Unable to reconnect to signaling server after several attempts.",
         });
         dispatch(setConnectionStatus(false));
-        hasErrorRef.current = true;
+        setHasError(true);
       },
 
       onConnectError(error) {
         console.error("[Signaling] Connection error:", error);
+        setHasError(true);
       },
     });
 
@@ -177,15 +180,16 @@ export const useSignaling = () => {
 
     // Cleanup on logout or error only
     return () => {
-      if (!currentUser?.username || hasErrorRef.current) {
+      if (!currentUser?.username || hasError) {
         disconnect();
       }
     };
-  }, [currentUser, disconnect, dispatch]);
+  }, [currentUser, disconnect, dispatch, hasError]);
 
   return {
     signaling: signalingRef.current,
     isConnected,
-    hasError: hasErrorRef.current,
+    disconnect,
+    hasError,
   };
 };
