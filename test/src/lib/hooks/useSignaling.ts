@@ -24,7 +24,6 @@ import type { OnlineUser } from "@/types/onlineUser";
  */
 export const useSignaling = () => {
   const signalingRef = useRef<SignalingClient | null>(null);
-  const isConnectingRef = useRef(false);
   const [hasError, setHasError] = useState(false);
 
   const dispatch = useAppDispatch();
@@ -37,8 +36,6 @@ export const useSignaling = () => {
       client.disconnect();
       signalingRef.current = null;
     }
-
-    isConnectingRef.current = false;
 
     setHasError(false);
     dispatch(setConnectionStatus(false));
@@ -56,8 +53,10 @@ export const useSignaling = () => {
 
   // Initialize signaling connection once
   useEffect(() => {
+    const username = currentUser?.username;
+
     // User logged out → cleanup connection
-    if (!currentUser?.username) {
+    if (!username) {
       disconnect();
       return;
     }
@@ -65,7 +64,7 @@ export const useSignaling = () => {
     // Already connected with same user → do nothing
     if (
       signalingRef.current?.isConnected &&
-      signalingRef.current.currentUsername === currentUser.username
+      signalingRef.current.currentUsername === username
     ) {
       return;
     }
@@ -76,18 +75,25 @@ export const useSignaling = () => {
     // Logged in user changed → reset previous connection
     if (
       signalingRef.current?.currentUsername &&
-      signalingRef.current.currentUsername !== currentUser.username
+      signalingRef.current.currentUsername !== username
     ) {
       disconnect();
     }
 
     // Prevent multiple initializations / race conditions
-    if (isConnectingRef.current || signalingRef.current) return;
-
-    isConnectingRef.current = true;
+    if (
+      signalingRef.current &&
+      signalingRef.current.connectionState !== "disconnected"
+    )
+      return;
 
     // Create and configure client
     const client = new SignalingClient();
+
+    // // Store user data in closure to avoid dependency issues
+    // const userData = {
+
+    // };
 
     client.setEventHandlers({
       // -------------------- USER EVENTS --------------------
@@ -137,9 +143,9 @@ export const useSignaling = () => {
             username || currentUser.username
           }`,
         });
-        isConnectingRef.current = false;
-        setHasError(false);
+
         dispatch(setConnectionStatus(true));
+        setHasError(false);
       },
 
       onRegisterError({ message }) {
@@ -151,8 +157,6 @@ export const useSignaling = () => {
 
         dispatch(setConnectionStatus(false));
         dispatch(setOnlineUsers([]));
-
-        isConnectingRef.current = false;
         setHasError(true);
       },
 
@@ -168,19 +172,21 @@ export const useSignaling = () => {
           description:
             "Unable to reconnect to signaling server after several attempts.",
         });
+
         dispatch(setConnectionStatus(false));
         setHasError(true);
       },
 
       onConnectError(error) {
         console.error("[Signaling] Connection error:", error);
+
         setHasError(true);
       },
     });
 
     // Establish socket connection
     client.connect({
-      username: currentUser.username,
+      username,
       age: currentUser.age,
       gender: currentUser.gender,
       country: currentUser.country,
@@ -191,7 +197,7 @@ export const useSignaling = () => {
 
     // Cleanup on logout or error only
     return () => {
-      if (!currentUser?.username || hasError) {
+      if (!username) {
         disconnect();
       }
     };

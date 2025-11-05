@@ -32,7 +32,7 @@ export class SignalingClient {
   private isConnecting = false;
 
   setEventHandlers(handlers: SignalingEvents) {
-    this.eventHandlers = { ...this.eventHandlers, ...handlers };
+    this.eventHandlers = handlers;
   }
 
   on<K extends keyof SignalingEvents>(event: K, handler: SignalingEvents[K]) {
@@ -80,6 +80,8 @@ export class SignalingClient {
     if (!this.socket) return;
 
     const s = this.socket;
+    
+    s.removeAllListeners();
 
     s.on("connect", () => {
       this.isConnecting = false;
