@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 import { Button } from "@/components/ui/button";
 
 import { AlertTriangle } from "lucide-react";
@@ -5,20 +7,16 @@ import { AlertTriangle } from "lucide-react";
 interface ErrorUIProps {
   error?: Error | null;
   errorMessage?: string;
-  onReset?: () => void;
 }
 
 export default function ErrorUI({
   error,
   errorMessage,
-  onReset,
-}: ErrorUIProps) {
-  const reset = () => {
-    if (onReset) {
-      onReset();
-    } else {
-      window.location.href = "/";
-    }
+}: Readonly<ErrorUIProps>) {
+  const navigate = useNavigate();
+
+  const goHome = () => {
+    navigate("/");
   };
 
   const displayMessage =
@@ -46,7 +44,7 @@ export default function ErrorUI({
           </details>
         )}
 
-        <Button onClick={reset} className="mt-4 w-full">
+        <Button onClick={goHome} className="mt-4 w-full">
           Return to Home
         </Button>
       </div>

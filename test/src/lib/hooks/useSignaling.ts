@@ -3,6 +3,8 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { SignalingClient } from "@/lib/signaling/signalingClient";
 import { toast } from "sonner";
 
+import { userStorage } from "@/lib/db/userStorage";
+import { clearUser } from "@/lib/store/slices/userSlice";
 import {
   setOnlineUsers,
   addOnlineUser,
@@ -41,6 +43,15 @@ export const useSignaling = () => {
     setHasError(false);
     dispatch(setConnectionStatus(false));
     dispatch(setOnlineUsers([]));
+  }, [dispatch]);
+
+  const retry = useCallback(() => {
+    if (hasError) disconnect();
+  }, [hasError, disconnect]);
+
+  const reset = useCallback(async () => {
+    await userStorage.clearUser();
+    dispatch(clearUser());
   }, [dispatch]);
 
   // Initialize signaling connection once
@@ -190,6 +201,8 @@ export const useSignaling = () => {
     signaling: signalingRef.current,
     isConnected,
     disconnect,
+    retry,
+    reset,
     hasError,
   };
 };

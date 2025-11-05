@@ -1,32 +1,20 @@
-import { type ReactNode, useState, useEffect } from "react";
+import { type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSignaling, useConnectionManager } from "@/lib/hooks";
 
 import { Button } from "@/components/ui/button";
 
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Home } from "lucide-react";
 
 export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
   const { pathname } = useLocation();
   const { currentUser } = useAppSelector((state) => state.user);
-  const { isConnected, signaling, hasError, disconnect } = useSignaling();
+  const { isConnected, signaling, hasError, retry, reset } = useSignaling();
   const { connectionManager } = useConnectionManager();
 
-  const [retryCount, setRetryCount] = useState(0);
   const needsP2P = pathname.startsWith("/chat");
   const p2pReady = !!(isConnected && connectionManager);
-
-  useEffect(() => {
-    setRetryCount(0);
-  }, [currentUser?.username]);
-
-  const retry = () => {
-    if (!hasError) return;
-
-    disconnect();
-    setRetryCount((n) => n + 1);
-  };
 
   const getStatusText = () => {
     if (hasError) return "Failed to connect to signaling server.";
@@ -45,7 +33,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
           </div>
 
           {hasError && (
-            <div className="mt-4">
+            <div className="flex gap-2 mt-4">
               <Button
                 onClick={retry}
                 className="inline-flex items-center space-x-2"
@@ -53,9 +41,14 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
                 <RefreshCw className="size-4" />
                 <span>Retry Connection</span>
               </Button>
-              <div className="mt-2 text-xs text-gray-500">
-                Retry attempt #{retryCount + 1}
-              </div>
+              <Button
+                onClick={reset}
+                variant="outline"
+                className="inline-flex items-center space-x-2"
+              >
+                <Home className="size-4" />
+                <span>Return to Home</span>
+              </Button>
             </div>
           )}
 
