@@ -1,4 +1,5 @@
-import { SignalingClient } from "@/lib/signaling/signalingClient";
+import SignalingClient from "@/lib/signaling/signalingClient";
+import PeerConnection from "./PeerConnection";
 import { nanoid } from "nanoid";
 
 import {
@@ -13,30 +14,20 @@ import {
 
 import type { AppStore } from "@/lib/store";
 import type { Signal } from "@/types/webRtc";
-import type { Message, PeerConnection, PeerConnectionState } from "./PeerConnection";
-
-interface ConnectionManagerConfig {
-  currentUsername: string;
-  signalingClient: SignalingClient;
-  store: AppStore;
-  onTypingUpdate: (username: string, isTyping: boolean) => void;
-
-  // Configuration options
-  reconnectDelay?: number;
-  messageDeliveryDelay?: number;
-  maxReconnectAttempts?: number;
-  connectionTimeout?: number;
-}
+import type { Message } from "@/types/message";
+import type PeerConnectionType from "./PeerConnection";
+import type { ConnectionManagerConfig } from "@/types/webRtc";
+import type { PeerConnectionState } from "@/types/webRtc";
 
 export class ConnectionManager {
-  private readonly connections: Map<string, PeerConnection> = new Map();
+  private readonly connections: Map<string, PeerConnectionType> = new Map();
   private readonly reconnectAttempts: Map<string, number> = new Map();
   private readonly reconnectTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
   private readonly config: ConnectionManagerConfig;
   private readonly signalingClient: SignalingClient;
   private readonly store: AppStore;
-  private isDestroyed: boolean = false;
+  private isDestroyed = false;
 
   // Configuration with defaults
   private readonly RECONNECT_DELAY: number;
@@ -59,37 +50,29 @@ export class ConnectionManager {
   }
 
   setupSignalingHandlers() {
-    this.signalingClient.setEventHandlers({
-      onPrivateSignal: ({ fromUsername, signal }) => {
-        if (this.isDestroyed) return;
+    const client = this.signalingClient;
 
-        this.handleIncomingSignal(fromUsername, signal as Signal);
-      },
+    client.on("onPrivateSignal", ({ fromUsername, signal }) => {
+      if (!this.isDestroyed)
+        this.incomingSignal(fromUsername, signal as Signal);
+    });
 
-      onUserReconnected: ({ username }) => {
-        if (this.isDestroyed) return;
+    client.on("onUserReconnected", ({ username }) => {
+      if (!this.isDestroyed) this.userReconnected(username);
+    });
 
-        console.log(`User ${username} reconnected`);
-        this.handleUserReconnected(username);
-      },
+    this.signalingClient.on("onUserDisconnected", ({ username }) => {
+      if (!this.isDestroyed) return;
+      this.userDisconnected(username);
+    });
 
-      onUserDisconnected: ({ username }) => {
-        if (this.isDestroyed) return;
-
-        console.log(`User ${username} disconnected`);
-        this.handleUserDisconnected(username);
-      },
-
-      onUserOffline: ({ username }) => {
-        if (this.isDestroyed) return;
-
-        console.log(`User ${username} went offline`);
-        this.handleUserOffline(username);
-      },
+    this.signalingClient.on("onUserOffline", ({ username }) => {
+      if (!this.isDestroyed) return;
+      this.userOffline(username);
     });
   }
 
-  private async handleIncomingSignal(fromUsername: string, signal: Signal) {
+  private async incomingSignal(fromUsername: string, signal: Signal) {
     let connection = this.connections.get(fromUsername);
 
     // Create connection if it doesn't exist and we received an offer
@@ -99,7 +82,7 @@ export class ConnectionManager {
     if (connection) await connection.handleSignal(signal);
   }
 
-  private handleUserReconnected(username: string) {
+  private userReconnected(username: string) {
     this.reconnectAttempts.set(username, 0);
 
     if (this.connections.has(username)) {
@@ -107,7 +90,7 @@ export class ConnectionManager {
     }
   }
 
-  private handleUserDisconnected(username: string) {
+  private userDisconnected(username: string) {
     const connection = this.connections.get(username);
 
     if (connection) {
@@ -115,12 +98,12 @@ export class ConnectionManager {
         updateConnectionState({
           username,
           state: "disconnected",
-        }),
+        })
       );
     }
   }
 
-  private handleUserOffline(username: string) {
+  private userOffline(username: string) {
     // Clear any pending reconnect attempts
     this.clearReconnectTimeout(username);
     this.reconnectAttempts.delete(username);
@@ -140,77 +123,57 @@ export class ConnectionManager {
     }
 
     // Check if connection already exists
-    const existingConnection = this.connections.get(targetUsername);
-    if (existingConnection) {
-      if (existingConnection.isConnected) {
-        console.log(`Already connected to ${targetUsername}`);
-        return;
-      }
+    const existing = this.connections.get(targetUsername);
+    if (existing) {
+      if (existing.isConnected) return;
 
       // Close and remove existing failed connection
-      existingConnection.close();
+      existing.close();
       this.connections.delete(targetUsername);
     }
 
-    try {
-      // Create new connection as initiator
-      const connection = await this.createConnection(targetUsername, true);
+    // Create new connection as initiator
+    const connection = await this.createConnection(targetUsername, true);
 
-      // Set connection timeout
-      const timeoutId = setTimeout(() => {
-        if (!connection.isConnected) {
-          console.warn(`Connection to ${targetUsername} timed out`);
-          this.handleConnectionError(
-            targetUsername,
-            new Error("Connection timeout"),
-          );
-        }
-      }, this.CONNECTION_TIMEOUT);
+    // Set connection timeout
+    const timeoutId = setTimeout(() => {
+      if (!connection.isConnected) {
+        this.connectionError(targetUsername, new Error("Connection timeout"));
+      }
+    }, this.CONNECTION_TIMEOUT);
 
-      await connection.start();
-      clearTimeout(timeoutId);
-    } catch (error) {
-      console.error(`Failed to connect to ${targetUsername}:`, error);
-      this.handleConnectionError(targetUsername, error);
-      throw error;
-    }
+    await connection.start();
+    clearTimeout(timeoutId);
   }
 
-  private async createConnection(targetUsername: string, isInitiator: boolean) {
+  private async createConnection(
+    targetUsername: string,
+    isInitiator: boolean
+  ): Promise<PeerConnection> {
     const connection = new PeerConnection({
       username: this.config.currentUsername,
       targetUsername,
       isInitiator,
-      onSignal: (signal: unknown) => {
-        if (this.isDestroyed) return;
-
-        const success = this.signalingClient.sendSignal(targetUsername, signal);
-        if (!success) {
-          console.warn(`Failed to send signal to ${targetUsername}`);
-        }
-      },
-      onMessage: (message: Message) => {
-        if (this.isDestroyed) return;
-
-        this.handleMessage(targetUsername, message);
-      },
-      onTyping: (isTyping: boolean) => {
-        if (this.isDestroyed) return;
-
-        this.config.onTypingUpdate(targetUsername, isTyping);
-      },
-      onStateChange: (state: PeerConnectionState) => {
-        if (this.isDestroyed) return;
-
-        this.handleStateChange(targetUsername, state);
-      },
-      onError: (error: unknown) => {
-        if (this.isDestroyed) return;
-
-        console.error(`Connection error with ${targetUsername}:`, error);
-        this.handleConnectionError(targetUsername, error);
+      onSignal: (signal) => {
+        this.signalingClient.sendSignal(targetUsername, signal);
       },
     });
+
+    connection.on("message", (message: Message) =>
+      this.message(targetUsername, message)
+    );
+
+    connection.on("typing", (isTyping: boolean) =>
+      this.config.onTypingUpdate(targetUsername, isTyping)
+    );
+
+    connection.on("stateChange", (state: PeerConnectionState) =>
+      this.stateChange(targetUsername, state)
+    );
+
+    connection.on("error", (error: Error) =>
+      this.connectionError(targetUsername, error)
+    );
 
     this.connections.set(targetUsername, connection);
     this.store.dispatch(
@@ -218,62 +181,48 @@ export class ConnectionManager {
         username: targetUsername,
         state: "connecting",
         isInitiator,
-      }),
+      })
     );
 
     return connection;
   }
 
-  private handleMessage(fromUsername: string, message: Message) {
-    if (!message.text || typeof message.text !== "string") {
-      console.warn(`Invalid message from ${fromUsername}:`, message);
-      return;
-    }
-
-    const messageId = nanoid();
+  private message(fromUsername: string, message: Message) {
+    const id = nanoid();
 
     this.store.dispatch(
       addMessage({
-        id: messageId,
+        id,
         conversationId: fromUsername,
         senderId: fromUsername,
-        content: message.text,
+        content: message.content ?? "",
+        type: message.type ?? "text",
         timestamp: message.timestamp || Date.now(),
         isEncrypted: true,
         status: "delivered",
-      }),
+      })
     );
   }
 
-  private handleStateChange(username: string, state: PeerConnectionState) {
+  private stateChange(username: string, state: PeerConnectionState) {
     this.store.dispatch(updateConnectionState({ username, state }));
 
-    switch (state) {
-      case "connected":
-        this.reconnectAttempts.set(username, 0);
-        this.clearReconnectTimeout(username);
-        console.log(`Successfully connected to ${username}`);
-        break;
-
-      case "failed":
-      case "disconnected":
-        this.scheduleReconnect(username);
-        break;
-
-      case "closed":
-        this.clearReconnectTimeout(username);
-        break;
+    if (state === "connected") {
+      this.reconnectAttempts.set(username, 0);
+      this.clearReconnectTimeout(username);
+    } else if (["failed", "disconnected"].includes(state)) {
+      this.scheduleReconnect(username);
     }
   }
 
-  private handleConnectionError(username: string, error: unknown) {
+  private connectionError(username: string, error: unknown) {
     console.error(`Connection error with ${username}:`, error);
 
     this.store.dispatch(
       updateConnectionState({
         username,
         state: "failed",
-      }),
+      })
     );
 
     this.scheduleReconnect(username);
@@ -294,7 +243,9 @@ export class ConnectionManager {
     const delay = this.RECONNECT_DELAY * Math.pow(2, currentAttempts);
 
     console.log(
-      `Scheduling reconnect to ${username} in ${delay}ms (attempt ${currentAttempts + 1})`,
+      `Scheduling reconnect to ${username} in ${delay}ms (attempt ${
+        currentAttempts + 1
+      })`
     );
 
     const timeoutId = setTimeout(() => {
@@ -369,7 +320,7 @@ export class ConnectionManager {
         timestamp: Date.now(),
         isEncrypted: false,
         status: "pending",
-      }),
+      })
     );
 
     try {
@@ -383,7 +334,7 @@ export class ConnectionManager {
             updateMessageStatus({
               messageId,
               status: "sent",
-            }),
+            })
           );
         }
       }, this.MESSAGE_DELIVERY_DELAY);
@@ -395,7 +346,7 @@ export class ConnectionManager {
         updateMessageStatus({
           messageId,
           status: "failed",
-        }),
+        })
       );
 
       throw error;
@@ -416,7 +367,7 @@ export class ConnectionManager {
       } catch (error) {
         console.error(
           `Failed to send typing indicator to ${targetUsername}:`,
-          error,
+          error
         );
         return false;
       }

@@ -25,7 +25,7 @@ interface SignalingEvents {
   onConnectError?: (error: Error) => void;
 }
 
-export class SignalingClient {
+export default class SignalingClient {
   private socket: Socket | null = null;
   private eventHandlers: SignalingEvents = {};
   private username: string | null = null;
