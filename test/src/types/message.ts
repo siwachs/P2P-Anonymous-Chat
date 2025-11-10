@@ -1,10 +1,8 @@
-export type MessageType = "text" | "emoji" | "image" | "file" | "system";
-
 export interface Message {
   id: string;
   conversationId: string; // For 1 to 1, this is oher user's username
   senderId: string;
-  type: MessageType;
+  type: "text" | "emoji" | "image" | "file" | "system";
   content: string; // Could be text, emoji code, file URL, etc.
   metadata?: {
     mimeType?: string;
@@ -12,9 +10,10 @@ export interface Message {
     width?: number;
     height?: number;
     name?: string;
+    checksum?: string;
   };
   timestamp: number;
-  isEncrypted: boolean;
+  isEncrypted: true;
   status: "pending" | "sent" | "delivered" | "failed";
 }
 
@@ -23,7 +22,7 @@ export interface EncryptionKey {
   conversationId: string;
   publicKey: string;
   privateKey: string;
-  sharedSecret?: string;
+  sharedSecret: string;
   createdAt: number;
   expiresAt?: number;
 }
