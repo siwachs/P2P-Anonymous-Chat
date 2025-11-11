@@ -13,13 +13,19 @@ import {
 } from "@/lib/store/slices/messagesSlice";
 
 import type { AppStore } from "@/lib/store";
-import type { Signal } from "@/types/webRtc";
+import type { Signal } from "@/lib/webrtc/types";
 import type { Message } from "@/types/message";
 import type PeerConnectionType from "./PeerConnection";
-import type { ConnectionManagerConfig } from "@/types/webRtc";
-import type { PeerConnectionState } from "@/types/webRtc";
+import type { ConnectionManagerConfig } from "@/lib/webrtc/types";
+import type { PeerConnectionState } from "@/lib/webrtc/types";
+import {
+  RTC_RECONNECT_DELAY,
+  MESSAGE_DELIVERY_DELAY,
+  RTC_MAX_RECONNECT_ATTEMPT,
+  RTC_CONNECTION_TIMEOUT,
+} from "./constants";
 
-export class ConnectionManager {
+export default class ConnectionManager {
   private readonly connections: Map<string, PeerConnectionType> = new Map();
   private readonly reconnectAttempts: Map<string, number> = new Map();
   private readonly reconnectTimeouts: Map<
@@ -44,10 +50,13 @@ export class ConnectionManager {
     this.store = config.store;
 
     // Set configuration with defaults
-    this.RECONNECT_DELAY = config.reconnectDelay || 5000;
-    this.MESSAGE_DELIVERY_DELAY = config.messageDeliveryDelay || 100;
-    this.MAX_RECONNECT_ATTEMPTS = config.maxReconnectAttempts || 5;
-    this.CONNECTION_TIMEOUT = config.connectionTimeout || 20000;
+    this.RECONNECT_DELAY = config.reconnectDelay || RTC_RECONNECT_DELAY;
+    this.MESSAGE_DELIVERY_DELAY =
+      config.messageDeliveryDelay || MESSAGE_DELIVERY_DELAY;
+    this.MAX_RECONNECT_ATTEMPTS =
+      config.maxReconnectAttempts || RTC_MAX_RECONNECT_ATTEMPT;
+    this.CONNECTION_TIMEOUT =
+      config.connectionTimeout || RTC_CONNECTION_TIMEOUT;
 
     this.setupSignalingHandlers();
   }
@@ -154,6 +163,7 @@ export class ConnectionManager {
       await connection.start();
       clearTimeout(timeoutId);
     } catch (error) {
+      console.error(`Failed to connect to ${targetUsername}:`, error);
       this.connectionError(targetUsername, error);
       throw error;
     }
@@ -178,7 +188,7 @@ export class ConnectionManager {
     });
 
     connection.on("message", (message: Message) =>
-      this.message(targetUsername, message)
+      this.handleMessage(targetUsername, message)
     );
 
     connection.on("typing", (isTyping: boolean) =>
@@ -205,21 +215,21 @@ export class ConnectionManager {
     return connection;
   }
 
-  private message(fromUsername: string, message: Message) {
+  private handleMessage(fromUsername: string, message: Message) {
     if (!message || typeof message.content !== "string") {
       console.warn(`Invalid message from ${fromUsername}:`, message);
       return;
     }
 
-    const id = nanoid();
+    const messageId = nanoid();
 
     this.store.dispatch(
       addMessage({
-        id,
+        id: messageId,
         conversationId: fromUsername,
         senderId: fromUsername,
-        content: message.content ?? "",
-        type: message.type ?? "text",
+        content: message.content,
+        type: message.type,
         timestamp: message.timestamp || Date.now(),
         isEncrypted: true,
         status: "delivered",
@@ -267,6 +277,7 @@ export class ConnectionManager {
     const currentAttempts = this.reconnectAttempts.get(username) || 0;
 
     if (currentAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
+      console.log(`Max reconnect attempts reached for ${username}`);
       this.disconnectFromUser(username);
       return;
     }
@@ -275,22 +286,27 @@ export class ConnectionManager {
 
     // Calculate delay with exponential backoff
     const delay = this.RECONNECT_DELAY * Math.pow(2, currentAttempts);
-    console.log(`Reconnecting to ${username} in ${delay}ms`);
 
-    const timeout = setTimeout(() => {
+    console.log(
+      `Scheduling reconnect to ${username} in ${delay}ms (attempt ${
+        currentAttempts + 1
+      })`
+    );
+
+    const timeoutId = setTimeout(() => {
       if (!this.isDestroyed && this.connections.has(username)) {
         this.reconnectAttempts.set(username, currentAttempts + 1);
         this.restartConnection(username);
       }
     }, delay);
 
-    this.reconnectTimeouts.set(username, timeout);
+    this.reconnectTimeouts.set(username, timeoutId);
   }
 
   private clearReconnectTimeout(username: string) {
-    const timeout = this.reconnectTimeouts.get(username);
-    if (timeout) {
-      clearTimeout(timeout);
+    const timeoutId = this.reconnectTimeouts.get(username);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
       this.reconnectTimeouts.delete(username);
     }
   }

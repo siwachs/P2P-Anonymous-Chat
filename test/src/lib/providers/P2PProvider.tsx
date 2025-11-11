@@ -10,18 +10,20 @@ import { Loader2, RefreshCw, Home } from "lucide-react";
 export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
   const { pathname } = useLocation();
   const { currentUser } = useAppSelector((state) => state.user);
-  const { isConnected, signaling, hasError, retry, reset } = useSignaling();
+  const { isConnected: signalingConnected, signaling, hasError, retry, reset } = useSignaling();
   const { connectionManager } = useConnectionManager();
 
   const needsP2P = pathname.startsWith("/chat");
-  const p2pReady = !!(isConnected && connectionManager);
+  const p2pReady = signalingConnected && !!connectionManager;
 
-  const getStatusText = () => {
-    if (hasError) return "Failed to connect to signaling server.";
-    if (!isConnected) return "Setting up signaling client...";
-    if (!connectionManager) return "Setting up P2P connections...";
-    return "Preparing chat...";
-  };
+  const statusText =
+    hasError
+      ? "Failed to connect to signaling server."
+      : !signalingConnected
+        ? "Setting up signaling client..."
+        : !connectionManager
+          ? "Setting up P2P connections..."
+          : "Preparing chat...";
 
   if (needsP2P && currentUser && !p2pReady)
     return (
@@ -29,7 +31,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="text-primary size-8 animate-spin" />
           <div className="text-muted-foreground text-sm font-medium">
-            {getStatusText()}
+            {statusText}
           </div>
 
           {hasError && (
@@ -58,7 +60,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
                 Signaling Connection State: {signaling?.connectionState}
               </div>
               <div>
-                Connected to Signaling Server: {isConnected ? "Yes" : "No"}
+                Connected to Signaling Server: {signalingConnected ? "Yes" : "No"}
               </div>
               <div>
                 Connection Manager is:{" "}

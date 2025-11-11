@@ -7,12 +7,8 @@ import type {
   PeerConnectionState,
   PeerConnectionConfig,
   Signal,
-} from "@/types/webRtc";
-
-const DEFAULT_ICE_SERVERS = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-];
+} from "@/lib/webrtc/types";
+import { DEFAULT_ICE_SERVERS } from "./constants";
 
 export default class PeerConnection extends TypedEventEmitter<{
   message: Message;
@@ -40,8 +36,9 @@ export default class PeerConnection extends TypedEventEmitter<{
     if (config.isInitiator) this.createDataChannel();
   }
 
+  // Core WebRTC setup
   private setupPeerConnection() {
-    // ICE candidate handling
+    // ICE candidate -> signaling
     this.pc.onicecandidate = (event) => {
       if (event.candidate)
         this.config.onSignal({
@@ -50,13 +47,13 @@ export default class PeerConnection extends TypedEventEmitter<{
         });
     };
 
-    // Connection state monitoring
+    // Track connection state
     this.pc.onconnectionstatechange = () => {
       this.updateState(this.pc.connectionState);
       if (this.pc.connectionState === "connected") this.flushMessageQueue();
     };
 
-    // Data channel for non-initiator
+    // Non-initiator receives channelx
     this.pc.ondatachannel = (event) => this.setupDataChannel(event.channel);
   }
 
@@ -228,6 +225,7 @@ export default class PeerConnection extends TypedEventEmitter<{
     }
   }
 
+  // Helpers / getters
   get isConnected(): boolean {
     return (
       this.state === "connected" && this.dataChannel?.readyState === "open"

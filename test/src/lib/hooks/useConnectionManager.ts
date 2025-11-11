@@ -2,28 +2,31 @@ import { useEffect, useRef, useCallback } from "react";
 import { useAppDispatch, useAppStore, useAppSelector } from "@/lib/store/hooks";
 import { useSignaling } from "./useSignaling";
 
-import { ConnectionManager } from "@/lib/webrtc/ConnectionManager";
+import { ConnectionManager } from "@/lib/webrtc";
 import { setTypingUser } from "@/lib/store/slices/messagesSlice";
 
+import type { Message } from "@/types";
+
+/**
+ * useConnectionManager — handles WebRTC peer connections for the current user.
+ * Depends on active SignalingClient and Redux store.
+ */
 export const useConnectionManager = () => {
   const dispatch = useAppDispatch();
   const store = useAppStore();
   const connectionManagerRef = useRef<ConnectionManager | null>(null);
 
   const { currentUser } = useAppSelector((state) => state.user);
-  const { signaling, isConnected } = useSignaling();
+  const { signaling, isConnected: isSignalingConnected } = useSignaling();
 
   useEffect(() => {
-    if (
-      !currentUser?.username ||
-      !signaling ||
-      !isConnected ||
-      connectionManagerRef.current
-    )
-      return;
+    const username = currentUser?.username;
 
-    const connectionManager = new ConnectionManager({
-      currentUsername: currentUser.username,
+    if (!username || !signaling || !isSignalingConnected) return;
+    if (connectionManagerRef.current) return;
+
+    const manager = new ConnectionManager({
+      currentUsername: username,
       signalingClient: signaling,
       store,
       onTypingUpdate: (username, isTyping) => {
@@ -31,32 +34,40 @@ export const useConnectionManager = () => {
       },
     });
 
-    connectionManagerRef.current = connectionManager;
+    connectionManagerRef.current = manager;
+
+    console.log("[useConnectionManager] Initialized for", username);
 
     return () => {
-      connectionManager.destroy();
+      console.log("[useConnectionManager] Destroying...");
+      manager.destroy();
       connectionManagerRef.current = null;
     };
-  }, [currentUser?.username, signaling, isConnected, dispatch, store]);
+  }, [currentUser?.username, signaling, isSignalingConnected, dispatch, store]);
 
-  const sendMessage = useCallback((targetUsername: string, message: string) => {
-    if (!connectionManagerRef.current)
-      throw new Error("ConnectionManager is not initialized");
-
-    connectionManagerRef.current.sendMessage(targetUsername, message);
-  }, []);
+  const sendMessage = useCallback(
+    (
+      targetUsername: string,
+      content: string,
+      type: Message["type"] = "text",
+      metadata?: Message["metadata"]
+    ) => {
+      connectionManagerRef.current?.sendMessage(
+        targetUsername,
+        content,
+        type,
+        metadata
+      );
+    },
+    []
+  );
 
   const connectToUser = useCallback(async (targetUsername: string) => {
-    if (!connectionManagerRef.current)
-      throw new Error("ConnectionManager is not initialized");
-
-    await connectionManagerRef.current.connectToUser(targetUsername);
+    await connectionManagerRef.current?.connectToUser(targetUsername);
   }, []);
 
   const disconnectFromUser = useCallback((targetUsername: string) => {
-    if (!connectionManagerRef.current) return;
-
-    connectionManagerRef.current.disconnectFromUser(targetUsername);
+    connectionManagerRef.current?.disconnectFromUser(targetUsername);
   }, []);
 
   return {
