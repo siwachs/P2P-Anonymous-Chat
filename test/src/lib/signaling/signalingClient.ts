@@ -1,29 +1,13 @@
 import { io, Socket } from "socket.io-client";
 
+import type { SignalingEvents } from "./types";
+import type { UserInfo } from "@/types/user";
 import {
   SOCKET_RECONNECTION_DELAY,
   SOCKET_RECONNECTION_DELAY_MAX,
   SOCKET_RECONNECTION_ATTEMPT_MAX,
   SOCKET_TIMEOUT,
-} from "@/lib/constants";
-import type { OnlineUser } from "@/types/onlineUser";
-import type { UserInfo } from "@/types/user";
-
-interface SignalingEvents {
-  onUsersUpdate?: (users: OnlineUser[]) => void;
-  onUserOnline?: (data: OnlineUser) => void;
-  onUserOffline?: (data: { username: string }) => void;
-  onUserReconnected?: (data: { username: string }) => void;
-  onUserDisconnected?: (data: { username: string }) => void;
-  onPrivateSignal?: (data: { fromUsername: string; signal: unknown }) => void;
-  onTypingStart?: (data: { fromUsername: string }) => void;
-  onTypingStop?: (data: { fromUsername: string }) => void;
-  onRegisterSuccess?: (data: { username: string }) => void;
-  onRegisterError?: (error: { message: string }) => void;
-  onReconnectAttempt?: (attempt: number) => void;
-  onReconnectFailed?: () => void;
-  onConnectError?: (error: Error) => void;
-}
+} from "./constants";
 
 export default class SignalingClient {
   private socket: Socket | null = null;
@@ -80,7 +64,7 @@ export default class SignalingClient {
     if (!this.socket) return;
 
     const s = this.socket;
-    
+
     s.removeAllListeners();
 
     s.on("connect", () => {

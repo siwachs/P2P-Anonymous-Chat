@@ -15,6 +15,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const needsP2P = pathname.startsWith("/chat");
   const p2pReady = signalingConnected && !!connectionManager;
+  console.log(signaling?.connectionState)
 
   const statusText =
     hasError
