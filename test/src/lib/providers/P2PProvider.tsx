@@ -58,7 +58,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
           {import.meta.env.DEV && (
             <div className="mt-2 text-center text-xs text-gray-500">
               <div>
-                Signaling Connection State: {signaling?.connectionState}
+                Signaling Connection State: {signaling?.connectionState ?? "Initlizing"}
               </div>
               <div>
                 Connected to Signaling Server: {signalingConnected ? "Yes" : "No"}
