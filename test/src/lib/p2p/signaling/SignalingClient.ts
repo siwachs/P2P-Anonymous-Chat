@@ -1,13 +1,13 @@
 import { io, Socket } from "socket.io-client";
 
-import type { SignalingEvents } from "./types";
+import type { SignalingEvents } from "./signalingTypes";
 import type { UserInfo } from "@/types/user";
 import {
   SOCKET_RECONNECTION_DELAY,
   SOCKET_RECONNECTION_DELAY_MAX,
   SOCKET_RECONNECTION_ATTEMPT_MAX,
   SOCKET_TIMEOUT,
-} from "./constants";
+} from "./signalingConstants";
 
 export default class SignalingClient {
   private socket: Socket | null = null;

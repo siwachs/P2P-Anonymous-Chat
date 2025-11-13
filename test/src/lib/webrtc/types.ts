@@ -1,4 +1,4 @@
-import type SignalingClient from "@/lib/signaling/SignalingClient";
+import type SignalingClient from "@/lib/p2p/signaling/SignalingClient";
 import type { AppStore } from "@/lib/store";
 
 export type PeerConnectionState =
