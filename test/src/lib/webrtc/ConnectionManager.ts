@@ -1,4 +1,4 @@
-import SignalingClient from "@/lib/signaling/signalingClient";
+import SignalingClient from "@/lib/signaling/SignalingClient";
 import PeerConnection from "./PeerConnection";
 import { nanoid } from "nanoid";
 

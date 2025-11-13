@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
-import SignalingClient from "@/lib/signaling/signalingClient";
+import { SignalingClient } from "@/lib/signaling";
 import { toast } from "sonner";
 
 import { userStorage } from "@/lib/db/userStorage";
