@@ -12,8 +12,11 @@ export default function useSignalingCore() {
   const [connected, setConnected] = useState(signaling.isConnected);
 
   useEffect(() => {
-    const onConnect = () => setConnected(true);
-    const onDisconnect = () => setConnected(false);
+    signaling.setEventHandlers({
+      ...signaling["eventHandlers"],
+      onConnected: () => setConnected(true),
+      onDisconnected: () => setConnected(false),
+    });
   }, [signaling]);
 
   return { signaling, connected };

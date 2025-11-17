@@ -9,6 +9,16 @@ import {
   SOCKET_TIMEOUT,
 } from "./signalingConstants";
 
+/**
+ * SignalingClient
+ * --------------------
+ * A clean abstraction on top of socket.io.
+ *
+ * ✔ Does NOT leak the socket instance.
+ * ✔ Exposes transport + business events via public API.
+ * ✔ Prevents duplicate listeners.
+ * ✔ Manages reconnects, errors, and registration.
+ */
 export default class SignalingClient {
   private socket: Socket | null = null;
   private eventHandlers: SignalingEvents = {};
@@ -67,14 +77,22 @@ export default class SignalingClient {
 
     s.removeAllListeners();
 
+    // ---------------------
+    // TRANSPORT-LEVEL EVENTS
+    // ---------------------
     s.on("connect", () => {
       this.isConnecting = false;
+      this.eventHandlers.onConnected?.();
       s.emit("register", data);
     });
 
     s.on("disconnect", (reason) => {
-      console.log("Socket disconnected:", reason);
       this.isConnecting = false;
+      this.eventHandlers.onDisconnected?.(reason);
+    });
+
+    s.on("connect_error", (error) => {
+      this.eventHandlers.onConnectError?.(error);
     });
 
     s.on("reconnect_attempt", (attempt) => {
@@ -85,10 +103,9 @@ export default class SignalingClient {
       this.eventHandlers.onReconnectFailed?.();
     });
 
-    s.on("connect_error", (error) => {
-      this.eventHandlers.onConnectError?.(error);
-    });
-
+    // ---------------------
+    // BUSINESS EVENTS
+    // ---------------------
     s.on("register-success", (payload) => {
       this.eventHandlers.onRegisterSuccess?.(payload);
     });
@@ -97,37 +114,56 @@ export default class SignalingClient {
       this.eventHandlers.onRegisterError?.(error);
     });
 
-    // User and signaling events
-    s.on("users-list", (users) => this.eventHandlers.onUsersUpdate?.(users));
-    s.on("user-online", (user) => this.eventHandlers.onUserOnline?.(user));
-    s.on("user-offline", (data) => this.eventHandlers.onUserOffline?.(data));
-    s.on("user-reconnected", (data) =>
-      this.eventHandlers.onUserReconnected?.(data)
-    );
-    s.on("user-disconnected", (data) =>
-      this.eventHandlers.onUserDisconnected?.(data)
-    );
-    s.on("signal-private", (data) =>
-      this.eventHandlers.onPrivateSignal?.(data)
-    );
-    s.on("typing-start", (data) => this.eventHandlers.onTypingStart?.(data));
-    s.on("typing-stop", (data) => this.eventHandlers.onTypingStop?.(data));
+    s.on("users-list", (users) => {
+      this.eventHandlers.onUsersUpdate?.(users);
+    });
+
+    s.on("user-online", (user) => {
+      this.eventHandlers.onUserOnline?.(user);
+    });
+
+    s.on("user-offline", (data) => {
+      this.eventHandlers.onUserOffline?.(data);
+    });
+
+    s.on("user-reconnected", (data) => {
+      this.eventHandlers.onUserReconnected?.(data);
+    });
+
+    s.on("user-disconnected", (data) => {
+      this.eventHandlers.onUserDisconnected?.(data);
+    });
+
+    s.on("signal-private", (data) => {
+      this.eventHandlers.onPrivateSignal?.(data);
+    });
+
+    s.on("typing-start", (data) => {
+      this.eventHandlers.onTypingStart?.(data);
+    });
+
+    s.on("typing-stop", (data) => {
+      this.eventHandlers.onTypingStop?.(data);
+    });
   }
 
   sendSignal(toUsername: string, signal: unknown) {
     if (!this.socket?.connected) return false;
+
     this.socket.emit("signal-private", { toUsername, signal });
     return true;
   }
 
   startTyping(toUsername: string) {
     if (!this.socket?.connected) return false;
+
     this.socket.emit("typing-start", toUsername);
     return true;
   }
 
   stopTyping(toUsername: string) {
     if (!this.socket?.connected) return false;
+
     this.socket.emit("typing-stop", toUsername);
     return true;
   }
@@ -138,6 +174,7 @@ export default class SignalingClient {
       this.socket.disconnect();
       this.socket = null;
     }
+
     this.isConnecting = false;
     this.username = null;
   }

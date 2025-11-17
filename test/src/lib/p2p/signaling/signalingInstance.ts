@@ -11,8 +11,6 @@ export function getSignalingInstance(): SignalingClient {
 }
 
 export function clearSignalingInstance(): void {
-  if (instance) {
-    instance.disconnect();
+    instance?.disconnect();
     instance = null;
-  }
 }
