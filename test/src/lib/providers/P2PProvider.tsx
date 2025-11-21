@@ -10,7 +10,8 @@ import { Loader2, RefreshCw, Home } from "lucide-react";
 export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
   const { pathname } = useLocation();
   const { currentUser } = useAppSelector((state) => state.user);
-  const { signalingConnected, signaling, reset } = useSignalingSession();
+  const { signalingConnected, signaling, reset, signalingHasError } =
+    useSignalingSession();
   const { connectionManager } = useConnectionManager(
     signaling,
     signalingConnected
@@ -19,7 +20,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
   const needsP2P = pathname.startsWith("/chat");
   const p2pReady = signalingConnected && !!connectionManager;
 
-  const statusText = hasError
+  const statusText = signalingHasError
     ? "Failed to connect to signaling server."
     : !signalingConnected
     ? "Setting up signaling client..."
@@ -36,7 +37,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
             {statusText}
           </div>
 
-          {hasError && (
+          {signalingHasError && (
             <div className="flex gap-2 mt-4">
               <Button
                 onClick={retry}

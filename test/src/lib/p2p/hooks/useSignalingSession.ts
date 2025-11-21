@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import useSignalingCore from "./useSignalingCore";
 import { clearSignalingInstance } from "../signaling/signalingInstance";
@@ -15,6 +15,7 @@ import { clearUser } from "@/lib/store/slices/userSlice";
 import { setTypingUser } from "@/lib/store/slices/messagesSlice";
 
 export default function useSignalingSession() {
+  const [hasError, setHasError] = useState(true);
   const { signaling, connected } = useSignalingCore();
   const dispatch = useAppDispatch();
 
@@ -38,7 +39,10 @@ export default function useSignalingSession() {
   }, [dispatch]);
 
   useEffect(() => {
-    signaling.on("onConnectError", console.error);
+    signaling.on("onConnectError", (error) => {
+      console.error(error);
+      setHasError(true);
+    });
 
     signaling.on("onRegisterSuccess", ({ username }) => {
       dispatch(setConnectionStatus(true));
@@ -49,6 +53,7 @@ export default function useSignalingSession() {
       dispatch(setConnectionStatus(false));
       dispatch(setOnlineUsers([]));
       toast.error(message);
+      setHasError(true);
     });
 
     signaling.on("onUsersUpdate", (users) => {
@@ -99,5 +104,11 @@ export default function useSignalingSession() {
     };
   }, [signaling, currentUser, dispatch]);
 
-  return { signaling, signalingConnected: connected, disconnect, reset };
+  return {
+    signaling,
+    signalingConnected: connected,
+    disconnect,
+    reset,
+    signalingHasError: hasError,
+  };
 }
