@@ -7,7 +7,7 @@ import type {
   PeerConnectionState,
   PeerConnectionConfig,
   Signal,
-} from "@/lib/webrtc/types";
+} from "./types";
 import { DEFAULT_ICE_SERVERS } from "./constants";
 
 export default class PeerConnection extends TypedEventEmitter<{

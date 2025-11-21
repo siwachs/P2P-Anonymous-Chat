@@ -12,12 +12,12 @@ import {
 } from "@/lib/store/slices/messagesSlice";
 
 import type { AppStore } from "@/lib/store";
-import type { Signal } from "@/lib/webrtc/types";
+import type { Signal } from "./types";
 import type { Message } from "@/types/message";
 import type SignalingClient from "../signaling/SignalingClient";
 import type PeerConnectionType from "./PeerConnection";
-import type { ConnectionManagerConfig } from "@/lib/webrtc/types";
-import type { PeerConnectionState } from "@/lib/webrtc/types";
+import type { ConnectionManagerConfig } from "./types";
+import type { PeerConnectionState } from "./types";
 import {
   RTC_RECONNECT_DELAY,
   MESSAGE_DELIVERY_DELAY,
