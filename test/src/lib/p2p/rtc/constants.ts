@@ -7,9 +7,9 @@ const RTC_DATA_CHANNEL_LABEL = "p2p-chat";
 
 const RTC_RECONNECT_DELAY = 5000;
 const RTC_MAX_RECONNECT_ATTEMPT = 5;
-const RTC_CONNECTION_TIMEOUT = 20000; // 20
+const RTC_CONNECTION_TIMEOUT = 15000; // 15
 
-const MESSAGE_DELIVERY_DELAY = 100; // artificial delivery delay for status updates
+const MESSAGE_DELIVERY_DELAY = 150; // artificial delivery delay for status updates
 const MAX_MESSAGE_SIZE = 64 * 1024; // 64KB, beyond which we chunk files
 
 export {

@@ -7,7 +7,7 @@ import {
   SOCKET_RECONNECTION_DELAY_MAX,
   SOCKET_RECONNECTION_ATTEMPT_MAX,
   SOCKET_TIMEOUT,
-} from "./signalingConstants";
+} from "./constants";
 
 /**
  * SignalingClient
@@ -21,34 +21,30 @@ import {
  */
 export default class SignalingClient {
   private socket: Socket | null = null;
-  private eventHandlers: SignalingEvents = {};
+  private handlers: SignalingEvents = {};
   private username: string | null = null;
   private isConnecting = false;
-
-  setEventHandlers(handlers: SignalingEvents) {
-    this.eventHandlers = handlers;
-  }
-
-  on<K extends keyof SignalingEvents>(event: K, handler: SignalingEvents[K]) {
-    this.eventHandlers[event] = handler;
+  
+  on<K extends keyof SignalingEvents>(event: K, cb: SignalingEvents[K]) {
+    this.handlers[event] = cb;
   }
 
   off<K extends keyof SignalingEvents>(event: K) {
-    delete this.eventHandlers[event];
+    delete this.handlers[event];
   }
 
   connect(
-    data: Omit<UserInfo, "id" | "createdAt" | "expiresAt">,
+    user: Omit<UserInfo, "id" | "createdAt" | "expiresAt">,
     serverUrl: string = import.meta.env.VITE_SIGNALING_URL
   ) {
     if (
       this.isConnecting ||
-      (this.socket?.connected && this.username === data.username)
+      (this.socket?.connected && this.username === user.username)
     )
       return;
 
     this.isConnecting = true;
-    this.username = data.username;
+    this.username = user.username;
 
     if (this.socket) {
       this.socket.removeAllListeners();
@@ -65,11 +61,11 @@ export default class SignalingClient {
       forceNew: true,
     });
 
-    this.registerSocketEvents(data);
+    this.attachSocketEvents(user);
   }
 
-  private registerSocketEvents(
-    data: Omit<UserInfo, "id" | "createdAt" | "expiresAt">
+  private attachSocketEvents(
+    user: Omit<UserInfo, "id" | "createdAt" | "expiresAt">
   ) {
     if (!this.socket) return;
 
@@ -82,68 +78,68 @@ export default class SignalingClient {
     // ---------------------
     s.on("connect", () => {
       this.isConnecting = false;
-      this.eventHandlers.onConnected?.();
-      s.emit("register", data);
+      this.handlers.onConnected?.();
+      s.emit("register", user);
     });
 
     s.on("disconnect", (reason) => {
       this.isConnecting = false;
-      this.eventHandlers.onDisconnected?.(reason);
+      this.handlers.onDisconnected?.(reason);
     });
 
     s.on("connect_error", (error) => {
-      this.eventHandlers.onConnectError?.(error);
+      this.handlers.onConnectError?.(error);
     });
 
     s.on("reconnect_attempt", (attempt) => {
-      this.eventHandlers.onReconnectAttempt?.(attempt);
+      this.handlers.onReconnectAttempt?.(attempt);
     });
 
     s.on("reconnect_failed", () => {
-      this.eventHandlers.onReconnectFailed?.();
+      this.handlers.onReconnectFailed?.();
     });
 
     // ---------------------
     // BUSINESS EVENTS
     // ---------------------
     s.on("register-success", (payload) => {
-      this.eventHandlers.onRegisterSuccess?.(payload);
+      this.handlers.onRegisterSuccess?.(payload);
     });
 
     s.on("register-error", (error) => {
-      this.eventHandlers.onRegisterError?.(error);
+      this.handlers.onRegisterError?.(error);
     });
 
     s.on("users-list", (users) => {
-      this.eventHandlers.onUsersUpdate?.(users);
+      this.handlers.onUsersUpdate?.(users);
     });
 
     s.on("user-online", (user) => {
-      this.eventHandlers.onUserOnline?.(user);
+      this.handlers.onUserOnline?.(user);
     });
 
     s.on("user-offline", (data) => {
-      this.eventHandlers.onUserOffline?.(data);
+      this.handlers.onUserOffline?.(data);
     });
 
     s.on("user-reconnected", (data) => {
-      this.eventHandlers.onUserReconnected?.(data);
+      this.handlers.onUserReconnected?.(data);
     });
 
     s.on("user-disconnected", (data) => {
-      this.eventHandlers.onUserDisconnected?.(data);
+      this.handlers.onUserDisconnected?.(data);
     });
 
     s.on("signal-private", (data) => {
-      this.eventHandlers.onPrivateSignal?.(data);
+      this.handlers.onPrivateSignal?.(data);
     });
 
     s.on("typing-start", (data) => {
-      this.eventHandlers.onTypingStart?.(data);
+      this.handlers.onTypingStart?.(data);
     });
 
     s.on("typing-stop", (data) => {
-      this.eventHandlers.onTypingStop?.(data);
+      this.handlers.onTypingStop?.(data);
     });
   }
 
@@ -169,11 +165,9 @@ export default class SignalingClient {
   }
 
   disconnect() {
-    if (this.socket) {
-      this.socket.removeAllListeners();
-      this.socket.disconnect();
-      this.socket = null;
-    }
+    this.socket?.removeAllListeners();
+    this.socket?.disconnect();
+    this.socket = null;
 
     this.isConnecting = false;
     this.username = null;

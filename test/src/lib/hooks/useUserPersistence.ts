@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 
-import { userStorage } from "@/lib/db/userStorage";
+import { userStorage } from "@/lib/db";
 import { setLoading, setUser } from "@/lib/store/slices/userSlice";
 
-export const useUserPersistence = () => {
+const useUserPersistence = () => {
   const dispatch = useAppDispatch();
   const { isLoading, currentUser } = useAppSelector((state) => state.user);
 
@@ -29,3 +29,5 @@ export const useUserPersistence = () => {
 
   return { isLoading, currentUser };
 };
+
+export default useUserPersistence;
