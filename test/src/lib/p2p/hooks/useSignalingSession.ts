@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import useSignalingCore from "./useSignalingCore";
 import { clearSignalingInstance } from "../signaling/signalingInstance";
 import { toast } from "sonner";
+import { toastStyles } from "@/lib/themes";
 
 import { userStorage } from "@/lib/db";
 import {
@@ -44,36 +45,33 @@ export default function useSignalingSession() {
     setHasError(false);
     signaling.disconnect();
 
-    setTimeout(() => {
-      if (currentUser) {
-        signaling.connect({
-          username: currentUser.username,
-          age: currentUser.age,
-          gender: currentUser.gender,
-          country: currentUser.country,
-          interests: currentUser.interests,
-        });
-      }
-    }, 500);
+    signaling.connect({
+      username: currentUser.username,
+      age: currentUser.age,
+      gender: currentUser.gender,
+      country: currentUser.country,
+      interests: currentUser.interests,
+    });
   }, [signaling, currentUser]);
 
   useEffect(() => {
     signaling.on("onConnectError", (error) => {
       console.error(error);
       setHasError(true);
+      toast.error((error as Error).message, toastStyles.error);
     });
 
     signaling.on("onRegisterSuccess", ({ username }) => {
       dispatch(setConnectionStatus(true));
       setHasError(false);
-      toast.success(`Connected as ${username}`);
+      toast.success(`Connected as ${username}`, toastStyles.success);
     });
 
     signaling.on("onRegisterError", ({ message }) => {
       dispatch(setConnectionStatus(false));
       dispatch(setOnlineUsers([]));
-      toast.error(message);
       setHasError(true);
+      toast.error(message, toastStyles.error);
     });
 
     signaling.on("onUsersUpdate", (users) => {
