@@ -23,6 +23,8 @@ import {
   MESSAGE_DELIVERY_DELAY,
   RTC_MAX_RECONNECT_ATTEMPT,
   RTC_CONNECTION_TIMEOUT,
+  MAX_CONNECTIONS,
+  MAX_MESSAGE_SIZE,
 } from "./constants";
 
 /**
@@ -40,6 +42,12 @@ import {
 export default class ConnectionManager {
   // RTC peers
   private readonly connections: Map<string, PeerConnectionType> = new Map();
+  private readonly connectionMetadata: Map<
+    string,
+    { createdAt: number; lastActivityAt: number }
+  > = new Map();
+
+
   // Retry system
   private readonly reconnectAttempts: Map<string, number> = new Map();
   private readonly reconnectTimeouts: Map<
@@ -59,6 +67,8 @@ export default class ConnectionManager {
   private readonly MESSAGE_DELIVERY_DELAY: number;
   private readonly MAX_RECONNECT_ATTEMPTS: number;
   private readonly TIMEOUT: number;
+  private readonly MAX_CONNECTIONS_LIMIT: number;
+  private readonly MAX_MESSAGE_SIZE_LIMIT: number;
 
   constructor(config: ConnectionManagerConfig) {
     this.config = config;
@@ -72,6 +82,8 @@ export default class ConnectionManager {
     this.MAX_RECONNECT_ATTEMPTS =
       config.maxReconnectAttempts || RTC_MAX_RECONNECT_ATTEMPT;
     this.TIMEOUT = config.connectionTimeout || RTC_CONNECTION_TIMEOUT;
+    this.MAX_CONNECTIONS_LIMIT = MAX_CONNECTIONS;
+    this.MAX_MESSAGE_SIZE_LIMIT = MAX_MESSAGE_SIZE;
 
     this.bindSignalingEvents();
   }
@@ -157,21 +169,45 @@ export default class ConnectionManager {
   // ---------------------------------------------------------
   async connectToUser(targetUsername: string): Promise<void> {
     if (this.isDestroyed)
-      throw new Error("ConnectionManager has been destroyed");
+    {
+      return { success: false, error: "ConnectionManager has been destroyed" };
+    }
 
     // Validate input
     if (!targetUsername || targetUsername === this.config.currentUsername) {
-      throw new Error("Invalid target username");
+      return { success: false, error: "Invalid target username" };
     }
 
     // Check if connection already exists
     const existing = this.connections.get(targetUsername);
     if (existing) {
-      if (existing.isConnected) return;
+      if (existing.isConnected) {
+        this.updateConnectionActivity(targetUsername);
+        return { success: true };
+      }
 
       // Close and remove existing failed connection
       existing.close();
       this.connections.delete(targetUsername);
+      this.connectionMetadata.delete(targetUsername);
+    }
+
+    // Check connection limit - auto-disconnect oldest if needed
+    let disconnectedUsername : string | undefined;
+    if(this.connections.size >= this.MAX_CONNECTIONS_LIMIT) {
+      const oldestConnection = this.findOldestConnection();
+
+      if(oldestConnection) {
+        disconnectedUsername = oldestConnection;
+        this.disconnectFromUser(disconnectedUsername);
+      }else{
+        // Fallback: disconnect first connection if we can't find oldest
+        const firstConnection = this.connections.keys().next().value;
+        if(firstConnection) {
+          disconnectedUsername = firstConnection;
+          this.disconnectFromUser(disconnectedUsername);
+        }
+      }
     }
 
     try {
@@ -187,9 +223,16 @@ export default class ConnectionManager {
 
       await connection.start();
       clearTimeout(timeoutId);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Connection failed",
+      }
     } catch (error) {
       this.connectionError(targetUsername, error);
-      throw error;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Connection failed",
+      };
     }
   }
 
@@ -214,11 +257,17 @@ export default class ConnectionManager {
 
     // Bind RTC events
     connection.on("message", (message: Message) =>
+    {
+      this.updateConnectionActivity(targetUsername);
       this.handleMessage(targetUsername, message)
+    }
     );
 
     connection.on("typing", (isTyping: boolean) =>
+     {
+      this.updateConnectionActivity(targetUsername);
       this.config.onTypingUpdate(targetUsername, isTyping)
+     }
     );
 
     connection.on("stateChange", (state: PeerConnectionState) =>
@@ -240,6 +289,47 @@ export default class ConnectionManager {
     );
 
     return connection;
+  }
+
+  /**
+   * Find the oldest connection (least recently active)
+   * Prioritizes disconnected/failed connections, then by last activity
+   */
+  private findOldestConnection(): string | undefined {
+    let oldestUsername : string | null = null;
+    let oldestTime = Date.now();
+    let oldestIsInactive = false;
+
+    this.connections.forEach((connection, username) => {
+      const metadata = this.connectionMetadata.get(username);
+      if(!metadata) return;
+
+      const isInactive = !connection.isConnected;
+      const lastActivity = metadata.lastActivityAt;
+
+      if(isInactive && !oldestIsInactive) {
+        oldestUsername = username;
+        oldestTime = lastActivity;
+        oldestIsInactive = true;
+      }else if((isInactive === oldestIsInactive && lastActivity < oldestTime) || (!oldestIsInactive && isInactive)){
+        oldestUsername = username;
+        oldestTime = lastActivity;
+        oldestIsInactive = isInactive;
+      }
+    });
+
+    return oldestUsername;
+  }
+
+  /**
+   * Update last activity timestamp for a connection
+   */
+  private updateConnectionActivity(username:string):void{
+    const metadata = this.connectionMetadata.get(username);
+
+    if(metadata){
+      metadata.lastActivityAt = Date.now();
+    }
   }
 
   // ---------------------------------------------------------
@@ -272,23 +362,34 @@ export default class ConnectionManager {
     content: string,
     type: Message["type"] = "text",
     metadata?: Message["metadata"]
-  ) {
+  ): { success: boolean; messageId?: string; error?: string } {
     if (this.isDestroyed) {
-      throw new Error("ConnectionManager has been destroyed");
+      return { success: false, error: "ConnectionManager has been destroyed" };
     }
 
     if (!content || typeof content !== "string") {
-      throw new Error("Invalid message");
+      return { success: false, error: "Invalid message" };
+    }
+
+    // Validate message size
+    const messageSize = new Blob([content]).size;
+    if (messageSize > this.MAX_MESSAGE_SIZE_LIMIT) {
+      return {
+        success: false,
+        error: `Message size (${messageSize} bytes) exceeds maximum allowed size of ${this.MAX_MESSAGE_SIZE_LIMIT} bytes`,
+      };
     }
 
     const connection = this.connections.get(targetUsername);
     if (!connection) {
-      throw new Error(`No connection to ${targetUsername}`);
+      return { success: false, error: `No connection to ${targetUsername}` };
     }
 
     if (!connection.isConnected) {
-      throw new Error(`Not connected to ${targetUsername}`);
+      return { success: false, error: `Not connected to ${targetUsername}` };
     }
+
+    this.updateConnectionActivity(targetUsername);
 
     const messageId = nanoid();
     this.store.dispatch(
@@ -320,6 +421,8 @@ export default class ConnectionManager {
           );
         }
       }, this.MESSAGE_DELIVERY_DELAY);
+
+      return { success: true, messageId };
     } catch (error) {
       this.store.dispatch(
         updateMessageStatus({
@@ -328,10 +431,11 @@ export default class ConnectionManager {
         })
       );
 
-      throw error;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to send message",
+      };
     }
-
-    return messageId;
   }
 
   sendTyping(targetUsername: string, isTyping: boolean) {
@@ -471,6 +575,9 @@ export default class ConnectionManager {
     this.reconnectTimeouts.clear();
     this.reconnectAttempts.clear();
 
+    // Clear connection metadata
+    this.connectionMetadata.clear();
+
     // Close all connections
     this.connections.forEach((connection) => connection.close());
     this.connections.clear();
@@ -514,6 +621,14 @@ export default class ConnectionManager {
     return this.connections.size;
   }
 
+  getRemainingConnectionSlots(): number {
+    return Math.max(0, this.MAX_CONNECTIONS_LIMIT - this.connections.size);
+  }
+
+  getMaxMessageSize(): number {
+    return this.MAX_MESSAGE_SIZE_LIMIT;
+  }
+
   get isAlive(): boolean {
     return !this.isDestroyed;
   }
@@ -522,6 +637,8 @@ export default class ConnectionManager {
     return {
       isDestroyed: this.isDestroyed,
       connectionCount: this.connections.size,
+      maxConnections: this.MAX_CONNECTIONS_LIMIT,
+      remainingSlots: this.getRemainingConnectionSLots(),
       reconnectAttempts: Object.fromEntries(this.reconnectAttempts),
       pendingReconnects: this.reconnectTimeouts.size,
     };

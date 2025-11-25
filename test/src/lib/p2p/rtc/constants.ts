@@ -1,23 +1,10 @@
-const DEFAULT_ICE_SERVERS = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-];
+import { P2P_CONFIG } from "../config/p2p.config";
 
-const RTC_DATA_CHANNEL_LABEL = "p2p-chat";
-
-const RTC_RECONNECT_DELAY = 5000;
-const RTC_MAX_RECONNECT_ATTEMPT = 5;
-const RTC_CONNECTION_TIMEOUT = 15000; // 15
-
-const MESSAGE_DELIVERY_DELAY = 150; // artificial delivery delay for status updates
-const MAX_MESSAGE_SIZE = 64 * 1024; // 64KB, beyond which we chunk files
-
-export {
-  DEFAULT_ICE_SERVERS,
-  RTC_DATA_CHANNEL_LABEL,
-  RTC_RECONNECT_DELAY,
-  RTC_MAX_RECONNECT_ATTEMPT,
-  RTC_CONNECTION_TIMEOUT,
-  MESSAGE_DELIVERY_DELAY,
-  MAX_MESSAGE_SIZE,
-};
+export const DEFAULT_ICE_SERVERS = P2P_CONFIG.rtc.iceServers;
+export const RTC_DATA_CHANNEL_LABEL = P2P_CONFIG.rtc.dataChannelLabel;
+export const RTC_RECONNECT_DELAY = P2P_CONFIG.rtc.reconnectDelay;
+export const RTC_MAX_RECONNECT_ATTEMPT = P2P_CONFIG.rtc.maxReconnectAttempts;
+export const RTC_CONNECTION_TIMEOUT = P2P_CONFIG.rtc.connectionTimeout;
+export const MESSAGE_DELIVERY_DELAY = P2P_CONFIG.rtc.messageDeliveryDelay;
+export const MAX_MESSAGE_SIZE = P2P_CONFIG.rtc.maxMessageSize;
+export const MAX_CONNECTIONS = P2P_CONFIG.rtc.maxConnections;

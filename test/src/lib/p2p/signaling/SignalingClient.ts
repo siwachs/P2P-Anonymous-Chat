@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
 
-import type { SignalingEvents } from "./signalingTypes";
+import type { SignalingEvents } from "./types";
 import type { UserInfo } from "@/types/user";
 import {
   SOCKET_RECONNECTION_DELAY,
@@ -24,7 +24,7 @@ export default class SignalingClient {
   private handlers: SignalingEvents = {};
   private username: string | null = null;
   private isConnecting = false;
-  
+
   on<K extends keyof SignalingEvents>(event: K, cb: SignalingEvents[K]) {
     this.handlers[event] = cb;
   }

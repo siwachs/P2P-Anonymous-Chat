@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useAppDispatch, useAppSelector, useAppStore } from "@/lib/store/hooks";
-import ConnectionManager from "../rtc/ConnectionManager";
+import { ConnectionManager } from "../rtc";
 
 import { setTypingUser } from "@/lib/store/slices/messagesSlice";
 
@@ -36,7 +36,7 @@ export default function useConnectionManager(
       manager.destroy();
       ref.current = null;
     };
-  }, [currentUsername, signalingConnected, signaling, dispatch,store]);
+  }, [currentUsername, signalingConnected, signaling, dispatch, store]);
 
   const sendMessage = useCallback(
     (
@@ -58,10 +58,18 @@ export default function useConnectionManager(
     return ref.current?.disconnectFromUser(targetUsername);
   }, []);
 
+  const sendTyping = useCallback(
+    (targetUsername: string, isTyping: boolean) => {
+      return ref.current?.sendTyping(targetUsername, isTyping) || false;
+    },
+    []
+  );
+
   return {
     connectionManager: ref.current,
     sendMessage,
     connectToUser,
     disconnectFromUser,
+    sendTyping,
   };
 }

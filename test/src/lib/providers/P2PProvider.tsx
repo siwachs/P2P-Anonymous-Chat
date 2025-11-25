@@ -10,7 +10,7 @@ import { Loader2, RefreshCw, Home } from "lucide-react";
 export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
   const { pathname } = useLocation();
   const { currentUser } = useAppSelector((state) => state.user);
-  const { signalingConnected, signaling, reset, signalingHasError } =
+  const { signalingConnected, signaling, reset, retry, signalingHasError } =
     useSignalingSession();
   const { connectionManager } = useConnectionManager(
     signaling,

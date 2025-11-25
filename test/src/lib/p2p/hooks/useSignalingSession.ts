@@ -38,6 +38,25 @@ export default function useSignalingSession() {
     clearSignalingInstance();
   }, [dispatch]);
 
+  const retry = useCallback(() => {
+    if (!currentUser) return;
+
+    setHasError(false);
+    signaling.disconnect();
+
+    setTimeout(() => {
+      if (currentUser) {
+        signaling.connect({
+          username: currentUser.username,
+          age: currentUser.age,
+          gender: currentUser.gender,
+          country: currentUser.country,
+          interests: currentUser.interests,
+        });
+      }
+    }, 500);
+  }, [signaling, currentUser]);
+
   useEffect(() => {
     signaling.on("onConnectError", (error) => {
       console.error(error);
@@ -46,6 +65,7 @@ export default function useSignalingSession() {
 
     signaling.on("onRegisterSuccess", ({ username }) => {
       dispatch(setConnectionStatus(true));
+      setHasError(false);
       toast.success(`Connected as ${username}`);
     });
 
@@ -109,6 +129,7 @@ export default function useSignalingSession() {
     signalingConnected: connected,
     disconnect,
     reset,
+    retry,
     signalingHasError: hasError,
   };
 }
