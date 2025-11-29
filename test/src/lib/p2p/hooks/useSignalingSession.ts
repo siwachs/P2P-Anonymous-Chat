@@ -40,18 +40,18 @@ export default function useSignalingSession() {
   }, [dispatch]);
 
   const retry = useCallback(() => {
-    if (!currentUser) return;
-
     setHasError(false);
     signaling.disconnect();
 
-    signaling.connect({
-      username: currentUser.username,
-      age: currentUser.age,
-      gender: currentUser.gender,
-      country: currentUser.country,
-      interests: currentUser.interests,
-    });
+    if (currentUser) {
+      signaling.connect({
+        username: currentUser.username,
+        age: currentUser.age,
+        gender: currentUser.gender,
+        country: currentUser.country,
+        interests: currentUser.interests,
+      });
+    }
   }, [signaling, currentUser]);
 
   useEffect(() => {

@@ -19,16 +19,16 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const needsP2P = pathname.startsWith("/chat");
   const p2pReady = signalingConnected && !!connectionManager;
+  const isLoadingP2P = needsP2P && currentUser && !p2pReady;
 
-  const statusText = signalingHasError
-    ? "Failed to connect to signaling server."
-    : !signalingConnected
-    ? "Setting up signaling client..."
-    : !connectionManager
-    ? "Setting up P2P connections..."
-    : "Preparing chat...";
+  const statusText = (() => {
+    if (signalingHasError) return "Failed to connect to signaling server.";
+    if (!signalingConnected) return "Setting up signaling client...";
+    if (!connectionManager) return "Setting up P2P connections...";
+    return "Preparing chat...";
+  })();
 
-  if (needsP2P && currentUser && !p2pReady)
+  if (isLoadingP2P)
     return (
       <div className="bg-background flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
