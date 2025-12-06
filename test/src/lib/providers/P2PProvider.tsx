@@ -44,7 +44,7 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
                 className="inline-flex items-center space-x-2"
               >
                 <RefreshCw className="size-4" />
-                <span>Retry Connection</span>
+                <span>Retry Now</span>
               </Button>
               <Button
                 onClick={reset}

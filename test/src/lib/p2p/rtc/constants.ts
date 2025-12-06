@@ -1,4 +1,4 @@
-import { P2P_CONFIG } from "../config/p2p.config";
+import { P2P_CONFIG } from "../p2p.config";
 
 export const DEFAULT_ICE_SERVERS = P2P_CONFIG.rtc.iceServers;
 export const RTC_DATA_CHANNEL_LABEL = P2P_CONFIG.rtc.dataChannelLabel;

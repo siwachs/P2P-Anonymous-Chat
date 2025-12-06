@@ -1,10 +1,7 @@
 import { useEffect, useCallback, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import useSignalingCore from "./useSignalingCore";
-import {
-  getSignalingInstance,
-  clearSignalingInstance,
-} from "../signaling/signalingInstance";
+import { clearSignalingInstance } from "../signaling/signalingInstance";
 import { toast } from "sonner";
 import { toastStyles } from "@/lib/themes";
 
@@ -37,17 +34,28 @@ export default function useSignalingSession() {
   }, [signaling, dispatch]);
 
   const reset = useCallback(async () => {
-    await userStorage.clearUser();
+    disconnect();
     dispatch(clearUser());
     clearSignalingInstance();
-  }, [dispatch]);
+
+    await userStorage.clearUser();
+  }, [disconnect, dispatch]);
 
   const retry = useCallback(() => {
     setHasError(false);
 
-    clearSignalingInstance();
-    getSignalingInstance();
-  }, []);
+    signaling.disconnect();
+
+    if (currentUser) {
+      signaling.connect({
+        username: currentUser.username,
+        age: currentUser.age,
+        gender: currentUser.gender,
+        country: currentUser.country,
+        interests: currentUser.interests,
+      });
+    }
+  }, [signaling, currentUser]);
 
   useEffect(() => {
     signaling.on("onConnectError", (error) => {

@@ -1,7 +1,5 @@
 /**
  * Only manages connect/disconnect.
- * Never registers handlers.
- * Never dispatches redux.
  */
 
 import { useEffect, useState } from "react";

@@ -1,4 +1,4 @@
-import { P2P_CONFIG } from "../config/p2p.config";
+import { P2P_CONFIG } from "../p2p.config";
 
 export const SOCKET_RECONNECTION_DELAY = P2P_CONFIG.signaling.reconnectDelay;
 export const SOCKET_RECONNECTION_DELAY_MAX =

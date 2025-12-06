@@ -12,12 +12,14 @@ import {
 } from "@/lib/store/slices/messagesSlice";
 
 import type { AppStore } from "@/lib/store";
-import type { Signal } from "./types";
+import type {
+  Signal,
+  ConnectionManagerConfig,
+  PeerConnectionState,
+} from "./types";
 import type { Message } from "@/types/message";
 import type SignalingClient from "../signaling/SignalingClient";
 import type PeerConnectionType from "./PeerConnection";
-import type { ConnectionManagerConfig } from "./types";
-import type { PeerConnectionState } from "./types";
 import {
   RTC_RECONNECT_DELAY,
   MESSAGE_DELIVERY_DELAY,
@@ -46,7 +48,6 @@ export default class ConnectionManager {
     string,
     { createdAt: number; lastActivityAt: number }
   > = new Map();
-
 
   // Retry system
   private readonly reconnectAttempts: Map<string, number> = new Map();
@@ -168,8 +169,7 @@ export default class ConnectionManager {
   // CREATE / CONNECT
   // ---------------------------------------------------------
   async connectToUser(targetUsername: string): Promise<void> {
-    if (this.isDestroyed)
-    {
+    if (this.isDestroyed) {
       return { success: false, error: "ConnectionManager has been destroyed" };
     }
 
@@ -193,17 +193,17 @@ export default class ConnectionManager {
     }
 
     // Check connection limit - auto-disconnect oldest if needed
-    let disconnectedUsername : string | undefined;
-    if(this.connections.size >= this.MAX_CONNECTIONS_LIMIT) {
+    let disconnectedUsername: string | undefined;
+    if (this.connections.size >= this.MAX_CONNECTIONS_LIMIT) {
       const oldestConnection = this.findOldestConnection();
 
-      if(oldestConnection) {
+      if (oldestConnection) {
         disconnectedUsername = oldestConnection;
         this.disconnectFromUser(disconnectedUsername);
-      }else{
+      } else {
         // Fallback: disconnect first connection if we can't find oldest
         const firstConnection = this.connections.keys().next().value;
-        if(firstConnection) {
+        if (firstConnection) {
           disconnectedUsername = firstConnection;
           this.disconnectFromUser(disconnectedUsername);
         }
@@ -226,7 +226,7 @@ export default class ConnectionManager {
       return {
         success: false,
         error: error instanceof Error ? error.message : "Connection failed",
-      }
+      };
     } catch (error) {
       this.connectionError(targetUsername, error);
       return {
@@ -256,19 +256,15 @@ export default class ConnectionManager {
     });
 
     // Bind RTC events
-    connection.on("message", (message: Message) =>
-    {
+    connection.on("message", (message: Message) => {
       this.updateConnectionActivity(targetUsername);
-      this.handleMessage(targetUsername, message)
-    }
-    );
+      this.handleMessage(targetUsername, message);
+    });
 
-    connection.on("typing", (isTyping: boolean) =>
-     {
+    connection.on("typing", (isTyping: boolean) => {
       this.updateConnectionActivity(targetUsername);
-      this.config.onTypingUpdate(targetUsername, isTyping)
-     }
-    );
+      this.config.onTypingUpdate(targetUsername, isTyping);
+    });
 
     connection.on("stateChange", (state: PeerConnectionState) =>
       this.stateChange(targetUsername, state)
@@ -296,22 +292,25 @@ export default class ConnectionManager {
    * Prioritizes disconnected/failed connections, then by last activity
    */
   private findOldestConnection(): string | undefined {
-    let oldestUsername : string | null = null;
+    let oldestUsername: string | null = null;
     let oldestTime = Date.now();
     let oldestIsInactive = false;
 
     this.connections.forEach((connection, username) => {
       const metadata = this.connectionMetadata.get(username);
-      if(!metadata) return;
+      if (!metadata) return;
 
       const isInactive = !connection.isConnected;
       const lastActivity = metadata.lastActivityAt;
 
-      if(isInactive && !oldestIsInactive) {
+      if (isInactive && !oldestIsInactive) {
         oldestUsername = username;
         oldestTime = lastActivity;
         oldestIsInactive = true;
-      }else if((isInactive === oldestIsInactive && lastActivity < oldestTime) || (!oldestIsInactive && isInactive)){
+      } else if (
+        (isInactive === oldestIsInactive && lastActivity < oldestTime) ||
+        (!oldestIsInactive && isInactive)
+      ) {
         oldestUsername = username;
         oldestTime = lastActivity;
         oldestIsInactive = isInactive;
@@ -324,10 +323,10 @@ export default class ConnectionManager {
   /**
    * Update last activity timestamp for a connection
    */
-  private updateConnectionActivity(username:string):void{
+  private updateConnectionActivity(username: string): void {
     const metadata = this.connectionMetadata.get(username);
 
-    if(metadata){
+    if (metadata) {
       metadata.lastActivityAt = Date.now();
     }
   }
@@ -433,7 +432,8 @@ export default class ConnectionManager {
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to send message",
+        error:
+          error instanceof Error ? error.message : "Failed to send message",
       };
     }
   }
