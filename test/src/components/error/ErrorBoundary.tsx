@@ -40,7 +40,6 @@ export default class ErrorBoundary extends Component<
       hasError: false,
       error: null,
     });
-    window.location.href = "/";
   };
 
   render() {

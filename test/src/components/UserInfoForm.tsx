@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 
 import type { Age, Gender } from "@/types/user";
-import { countries } from "@/lib/constants/countries";
+import { countries } from "@/lib/constants";
 
 const UserInfoForm = () => {
   const dispatch = useAppDispatch();

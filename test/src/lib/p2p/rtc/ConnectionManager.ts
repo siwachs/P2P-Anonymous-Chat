@@ -168,7 +168,9 @@ export default class ConnectionManager {
   // ---------------------------------------------------------
   // CREATE / CONNECT
   // ---------------------------------------------------------
-  async connectToUser(targetUsername: string): Promise<void> {
+  async connectToUser(
+    targetUsername: string
+  ): Promise<{ success: boolean; error?: string }> {
     if (this.isDestroyed) {
       return { success: false, error: "ConnectionManager has been destroyed" };
     }
@@ -224,8 +226,7 @@ export default class ConnectionManager {
       await connection.start();
       clearTimeout(timeoutId);
       return {
-        success: false,
-        error: error instanceof Error ? error.message : "Connection failed",
+        success: true,
       };
     } catch (error) {
       this.connectionError(targetUsername, error);
@@ -291,14 +292,14 @@ export default class ConnectionManager {
    * Find the oldest connection (least recently active)
    * Prioritizes disconnected/failed connections, then by last activity
    */
-  private findOldestConnection(): string | undefined {
+  private findOldestConnection(): string | null {
     let oldestUsername: string | null = null;
     let oldestTime = Date.now();
     let oldestIsInactive = false;
 
-    this.connections.forEach((connection, username) => {
+    for (const [username, connection] of this.connections) {
       const metadata = this.connectionMetadata.get(username);
-      if (!metadata) return;
+      if (!metadata) return null;
 
       const isInactive = !connection.isConnected;
       const lastActivity = metadata.lastActivityAt;
@@ -315,7 +316,7 @@ export default class ConnectionManager {
         oldestTime = lastActivity;
         oldestIsInactive = isInactive;
       }
-    });
+    }
 
     return oldestUsername;
   }
@@ -571,7 +572,9 @@ export default class ConnectionManager {
     if (this.isDestroyed) return;
 
     // Clear all timeouts
-    this.reconnectTimeouts.forEach((timeout) => clearTimeout(timeout));
+    for (const timeout of this.reconnectTimeouts.values()) {
+      clearTimeout(timeout);
+    }
     this.reconnectTimeouts.clear();
     this.reconnectAttempts.clear();
 
@@ -579,7 +582,9 @@ export default class ConnectionManager {
     this.connectionMetadata.clear();
 
     // Close all connections
-    this.connections.forEach((connection) => connection.close());
+    for (const connection of this.connections.values()) {
+      connection.close();
+    }
     this.connections.clear();
   }
 
@@ -638,7 +643,7 @@ export default class ConnectionManager {
       isDestroyed: this.isDestroyed,
       connectionCount: this.connections.size,
       maxConnections: this.MAX_CONNECTIONS_LIMIT,
-      remainingSlots: this.getRemainingConnectionSLots(),
+      remainingSlots: this.getRemainingConnectionSlots(),
       reconnectAttempts: Object.fromEntries(this.reconnectAttempts),
       pendingReconnects: this.reconnectTimeouts.size,
     };

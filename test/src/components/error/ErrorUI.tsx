@@ -7,15 +7,18 @@ import { AlertTriangle } from "lucide-react";
 interface ErrorUIProps {
   error?: Error | null;
   errorMessage?: string;
+  onReset?: () => void;
 }
 
 export default function ErrorUI({
   error,
   errorMessage,
+  onReset,
 }: Readonly<ErrorUIProps>) {
   const navigate = useNavigate();
 
   const goHome = () => {
+    onReset?.();
     navigate("/");
   };
 

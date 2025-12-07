@@ -12,6 +12,11 @@ export default class TypedEventEmitter<T extends Record<string, unknown>> {
   }
 
   emit<k extends keyof T>(event: k, arg: T[k]) {
-    this.listeners[event]?.forEach((l) => l(arg));
+    const listeners = this.listeners[event];
+    if (!listeners) return;
+
+    for (const listener of listeners) {
+      listener(arg);
+    }
   }
 }

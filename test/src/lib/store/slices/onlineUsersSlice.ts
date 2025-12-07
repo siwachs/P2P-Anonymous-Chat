@@ -14,9 +14,9 @@ const onlineUsersSlice = createSlice({
   reducers: {
     setOnlineUsers: (state, action: PayloadAction<OnlineUser[]>) => {
       state.users = {};
-      action.payload.forEach((user) => {
+      for (const user of action.payload) {
         state.users[user.username] = user;
-      });
+      }
       state.lastUpdated = Date.now();
     },
 

@@ -46,9 +46,9 @@ const messagesSlice = createSlice({
       const messageIds = state.conversationMessages[conversationId] || [];
 
       // Remove messages
-      messageIds.forEach((id) => {
+      for (const id of messageIds) {
         delete state.messages[id];
-      });
+      }
 
       // Remove conversation
       delete state.conversationMessages[conversationId];

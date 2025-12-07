@@ -1,10 +1,10 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-import { countries } from "@/lib/constants/countries";
+import { countries } from "@/lib/constants";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function getCountryViaCode(code: string): {
@@ -16,7 +16,7 @@ export function getCountryViaCode(code: string): {
 
 export function isDeepEqual(
   obj1: Record<string, unknown>,
-  obj2: Record<string, unknown>,
+  obj2: Record<string, unknown>
 ) {
   if (obj1 === obj2) return true;
   if (obj1 == null || obj2 == null) return obj1 === obj2;
@@ -26,7 +26,7 @@ export function isDeepEqual(
   if (keys1.length !== keys2.length) return false;
 
   return keys1.every(
-    (key) => keys2.includes(key) && valuesEqual(obj1[key], obj2[key]),
+    (key) => keys2.includes(key) && valuesEqual(obj1[key], obj2[key])
   );
 }
 

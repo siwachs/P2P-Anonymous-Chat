@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-import type { PeerConnectionState } from "@/lib/webrtc/PeerConnection";
+import type { PeerConnectionState } from "@/types";
 import type { ConnectionInfo, ConnectionState } from "@/types/connection";
 
 const initialState: ConnectionState = {

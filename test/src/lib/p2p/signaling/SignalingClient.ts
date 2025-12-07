@@ -71,8 +71,6 @@ export default class SignalingClient {
 
     const s = this.socket;
 
-    s.removeAllListeners();
-
     // ---------------------
     // TRANSPORT-LEVEL EVENTS
     // ---------------------

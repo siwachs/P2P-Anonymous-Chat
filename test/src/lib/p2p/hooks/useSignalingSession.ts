@@ -43,18 +43,16 @@ export default function useSignalingSession() {
 
   const retry = useCallback(() => {
     setHasError(false);
-
     signaling.disconnect();
 
-    if (currentUser) {
-      signaling.connect({
-        username: currentUser.username,
-        age: currentUser.age,
-        gender: currentUser.gender,
-        country: currentUser.country,
-        interests: currentUser.interests,
-      });
-    }
+    if (!currentUser) return;
+    signaling.connect({
+      username: currentUser.username,
+      age: currentUser.age,
+      gender: currentUser.gender,
+      country: currentUser.country,
+      interests: currentUser.interests,
+    });
   }, [signaling, currentUser]);
 
   useEffect(() => {

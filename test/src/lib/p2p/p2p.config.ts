@@ -37,7 +37,7 @@ export const P2P_CONFIG: IP2PConfig = {
       Number(import.meta.env.VITE_SIGNALING_RECONNECT_DELAY_MAX) || 5000,
     maxAttempts: Number(import.meta.env.VITE_SIGNALING_MAX_ATTEMPTS) || 5,
     timeout: Number(import.meta.env.VITE_SIGNALING_TIMEOUT) || 20000,
-    serverUrl: import.meta.env.VITE_SIGNALING_URL,
+    serverUrl: import.meta.env.VITE_SIGNALING_URL || "http://localhost:8000",
   },
   rtc: {
     reconnectDelay: Number(import.meta.env.VITE_RTC_RECONNECT_DELAY) || 5000,
