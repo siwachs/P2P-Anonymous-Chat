@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSignalingSession, useConnectionManager } from "@/lib/p2p/hooks";
+import { P2PContext } from "@/lib/p2p/P2PContext";
 
 import { Button } from "@/components/ui/button";
 
@@ -27,6 +28,8 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
     if (!connectionManager) return "Setting up P2P connections...";
     return "Preparing chat...";
   })();
+
+  const ctxValue = { logout: reset };
 
   if (isLoadingP2P)
     return (
@@ -77,5 +80,5 @@ export function P2PProvider({ children }: Readonly<{ children: ReactNode }>) {
       </div>
     );
 
-  return <>{children}</>;
+  return <P2PContext value={ctxValue}>{children}</P2PContext>;
 }

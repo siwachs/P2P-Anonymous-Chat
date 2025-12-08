@@ -48,7 +48,7 @@ export const P2P_CONFIG: IP2PConfig = {
     messageDeliveryDelay:
       Number(import.meta.env.VITE_MESSAGE_DELIVERY_DELAY) || 150,
     maxConnections: Number(import.meta.env.VITE_MAX_P2P_CONNECTIONS) || 10,
-    maxMessageSize: Number(import.meta.env.VITE_MAX_MESSAGE_SIZE) || 64 * 1024, // 64KB
+    maxMessageSize: Number(import.meta.env.VITE_MAX_MESSAGE_SIZE) || 9 * 1024 * 1024, // 9MB
     dataChannelLabel: "p2p-chat",
     iceServers: DEFAULT_ICE_SERVERS,
   },
