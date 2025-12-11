@@ -1,5 +1,5 @@
 import type { FC, ReactNode } from "react";
-import { useUserPersistence } from "@/lib/hooks";
+import { useAppSelector, useP2p } from "@/lib/hooks";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -13,15 +13,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
-import { Settings, Users, MessageSquare, LogOut } from "lucide-react";
+import { Settings, LogOut } from "lucide-react";
 
 const ChatLayout: FC<{ children: ReactNode }> = ({ children }) => {
-  const { currentUser } = useUserPersistence();
+  const { currentUser } = useAppSelector((state) => state.user);
+  const { logout } = useP2p();
 
   if (!currentUser) return;
 
