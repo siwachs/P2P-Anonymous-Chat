@@ -8,7 +8,7 @@ import "./main.css";
 
 /**
  * Application Entry Point
- * 
+ *
  * Provider Hierarchy:
  * StrictMode
  *   └─ AppProviders
@@ -18,6 +18,8 @@ import "./main.css";
  *                   └─ RootLayout
  *                       └─ RouterProviders (P2P, etc.)
  *                           └─ Routes (PublicRoute, ProtectedRoute)
+ *                               └─ ProtectedRoute
+ *                                   └─ ProvidersLayout (FiltersProvider)
  */
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
