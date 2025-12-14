@@ -24,6 +24,7 @@ interface FiltersContextValue {
   setCountryFilter: Dispatch<SetStateAction<string>>;
 
   // derived data
+  onlineUsers: OnlineUser[];
   filteredUsers: OnlineUser[];
   availableCountries: string[];
   hasActiveFilters: boolean;
@@ -101,6 +102,7 @@ export default function FiltersProvider({
     setGenderFilter,
     setCountryFilter,
 
+    onlineUsers,
     filteredUsers,
     availableCountries,
     hasActiveFilters,

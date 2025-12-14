@@ -1,7 +1,7 @@
 import type { RouteObject } from "react-router-dom";
 
 import { ProvidersLayout, ChatLayout, ChatUsersLayout } from "@/layouts";
-import { Chat } from "@/pages";
+import { Chat, ChatUsers } from "@/pages";
 
 const protectedRoutes: RouteObject[] = [
   {
@@ -19,7 +19,7 @@ const protectedRoutes: RouteObject[] = [
         path: "/chat/users",
         element: (
           <ChatUsersLayout>
-            <h1>Users Page</h1>
+            <ChatUsers />
           </ChatUsersLayout>
         ),
       },

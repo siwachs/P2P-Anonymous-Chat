@@ -1,6 +1,6 @@
 import { type FC, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "@/lib/hooks";
+import { useFilter, useAppSelector } from "@/lib/hooks";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { ArrowLeft, Circle } from "lucide-react";
 const ChatUsersLayout: FC<{ children: ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
 
+  const { filteredUsers, onlineUsers } = useFilter();
   const { currentUser } = useAppSelector((state) => state.user);
   const { isConnected } = useAppSelector((state) => state.onlineUsers);
 
