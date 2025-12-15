@@ -1,7 +1,10 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-import type { PeerConnectionState } from "@/types";
-import type { ConnectionInfo, ConnectionState } from "@/types/connection";
+import type {
+  PeerConnectionState,
+  ConnectionInfo,
+  ConnectionState,
+} from "@/types";
 
 const initialState: ConnectionState = {
   connections: {},

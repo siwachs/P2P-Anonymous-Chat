@@ -1,7 +1,8 @@
+import type { FC } from "react";
 import { Outlet } from "react-router-dom";
 import { RouterProviders } from "@/lib/providers";
 
-const RootLayout = () => {
+const RootLayout: FC = () => {
   return (
     <RouterProviders>
       <Outlet />
