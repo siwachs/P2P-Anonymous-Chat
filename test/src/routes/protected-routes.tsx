@@ -6,7 +6,7 @@ import {
   ChatUsersLayout,
   ChatUserLayout,
 } from "@/layouts";
-import { Chat, ChatUsers } from "@/pages";
+import { Chat, ChatUsers, ChatUser } from "@/pages";
 
 const protectedRoutes: RouteObject[] = [
   {
@@ -32,7 +32,7 @@ const protectedRoutes: RouteObject[] = [
         path: "/chat/users/:username",
         element: (
           <ChatUserLayout>
-            <h1>Chat Page</h1>
+            <ChatUser />
           </ChatUserLayout>
         ),
       },
