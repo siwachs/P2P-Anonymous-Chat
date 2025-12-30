@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { useParams } from "react-router-dom";
 import {
+  useAppDispatch,
   useAppSelector,
   useSignalingSession,
   useConnectionManager,
@@ -10,31 +11,23 @@ import {
   selectConversationMessages,
   selectIsUserTyping,
 } from "@/lib/store/slices/messagesSlice";
+import { setActiveConnection } from "@/lib/store/slices/connectionsSlice";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 
-import {
-  ArrowLeft,
-  Send,
-  Circle,
-  Loader2,
-  WifiOff,
-  RefreshCw,
-} from "lucide-react";
-
-import { CONNECTION_STATUS } from "@/lib/constants";
+import { Loader2, WifiOff, RefreshCw } from "lucide-react";
 
 const ChatUser = () => {
   const { username } = useParams();
+  const dispatch = useAppDispatch();
   const targetUsername = decodeURIComponent(username as string);
   const [message, setMessage] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null!);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const { currentUser } = useAppSelector((state) => state.user);
   const connection = useAppSelector(
@@ -48,15 +41,56 @@ const ChatUser = () => {
   );
 
   const { signaling, signalingConnected } = useSignalingSession();
-  const { connectionManager, connectToUser } = useConnectionManager(
+  const { sendMessage, connectToUser } = useConnectionManager(
     signaling,
     signalingConnected
   );
 
-  const reconnect = async () => {};
+  // Set Active Connection
+  useEffect(() => {
+    dispatch(setActiveConnection(targetUsername));
+
+    return () => {
+      dispatch(setActiveConnection(null));
+    };
+  }, [dispatch, targetUsername]);
+
+  // Initialize P2P connection
+  const initConnection = async () => {
+    if (!targetUsername) return;
+
+    setIsConnecting(true);
+    try {
+      await connectToUser(targetUsername);
+    } catch (error) {
+      console.error("Failed to connect:", error);
+    }
+
+    setIsConnecting(false);
+  };
+
+  // Send Message
+  const handleSendMessage = () => {
+    if (!message.trim() || !targetUsername) return;
+
+    sendMessage(targetUsername, message, "text");
+    setMessage("");
+    inputRef.current?.focus();
+  };
+
+  const sendMessageOnEnter = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const reconnect = async () => {
+    initConnection();
+  };
 
   const connectionState = connection?.state || "new";
-  const connectionStatus = CONNECTION_STATUS[connectionState];
+  const isConnected = connectionState === "connected";
 
   if (!targetUsername || !currentUser) return null;
 
@@ -111,6 +145,19 @@ const ChatUser = () => {
       </div>
 
       {/* Typing Indicator */}
+      {isTyping && (
+        <div className="absolute-0 bg-background/80 right-0 bottom-0 left-0 border-t px-4 py-2 backdrop-blur-sm">
+          <div className="text-muted-foreground flex items-center gap-2 text-sm">
+            <div className="flex gap-1">
+              <span className="animate-bounce delay-0">•</span>
+              <span className="animate-bounce delay-150">•</span>
+              <span className="animate-bounce delay-300">•</span>
+            </div>
+
+            <span className="truncate">{targetUsername} is typing</span>
+          </div>
+        </div>
+      )}
 
       {/* Input Area */}
       <div className="bg-card shrink-0 border-t p-4">
@@ -119,7 +166,20 @@ const ChatUser = () => {
             e.preventDefault();
           }}
           className="flex gap-2"
-        ></form>
+        >
+          <Input
+            ref={inputRef}
+            type="text"
+            placeholder={
+              isConnected ? "Type a message..." : "Waiting for connection..."
+            }
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={sendMessageOnEnter}
+            disabled={!isConnected}
+            className="flex-1"
+          />
+        </form>
       </div>
     </>
   );
