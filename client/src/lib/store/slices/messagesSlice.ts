@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-import { Message, MessageState } from "@/types/message";
+import type { Message, MessageState } from "@/types/message";
 
 const initialState: MessageState = {
   messages: {},
@@ -26,7 +26,7 @@ const messagesSlice = createSlice({
 
     updateMessageStatus: (
       state,
-      action: PayloadAction<{ messageId: string; status: Message["status"] }>,
+      action: PayloadAction<{ messageId: string; status: Message["status"] }>
     ) => {
       if (state.messages[action.payload.messageId])
         state.messages[action.payload.messageId].status = action.payload.status;
@@ -34,7 +34,7 @@ const messagesSlice = createSlice({
 
     setTypingUser: (
       state,
-      action: PayloadAction<{ username: string; isTyping: boolean }>,
+      action: PayloadAction<{ username: string; isTyping: boolean }>
     ) => {
       if (action.payload.isTyping)
         state.typingUsers[action.payload.username] = true;
@@ -46,9 +46,9 @@ const messagesSlice = createSlice({
       const messageIds = state.conversationMessages[conversationId] || [];
 
       // Remove messages
-      messageIds.forEach((id) => {
+      for (const id of messageIds) {
         delete state.messages[id];
-      });
+      }
 
       // Remove conversation
       delete state.conversationMessages[conversationId];
@@ -75,7 +75,7 @@ export default messagesSlice.reducer;
 // Selectors
 export const selectConversationMessages = (
   state: { messages: MessageState },
-  conversationId: string,
+  conversationId: string
 ): Message[] => {
   const messageIds = state.messages.conversationMessages[conversationId] || [];
 
@@ -89,7 +89,7 @@ export const selectIsUserTyping = (
   state: {
     messages: MessageState;
   },
-  username: string,
+  username: string
 ): boolean => {
   return state.messages.typingUsers[username] || false;
 };

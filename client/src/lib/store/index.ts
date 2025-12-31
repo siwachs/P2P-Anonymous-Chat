@@ -5,18 +5,16 @@ import messagesReducer from "./slices/messagesSlice";
 import connectionsReducer from "./slices/connectionsSlice";
 import onlineUsersReducer from "./slices/onlineUsersSlice";
 
-export const makeStore = () =>
-  configureStore({
-    reducer: {
-      user: userReducer,
-      messages: messagesReducer,
-      connections: connectionsReducer,
-      onlineUsers: onlineUsersReducer,
-    },
-  });
+export const store = configureStore({
+  reducer: {
+    user: userReducer,
+    messages: messagesReducer,
+    connections: connectionsReducer,
+    onlineUsers: onlineUsersReducer,
+  },
+});
 
-export type AppStore = ReturnType<typeof makeStore>;
-
+export type AppStore = typeof store;
 // Infer the `RootState` and `AppDispatch` types from the store itself
-export type RootState = ReturnType<AppStore["getState"]>;
-export type AppDispatch = AppStore["dispatch"];
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;

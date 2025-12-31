@@ -1,4 +1,4 @@
-import { Age, Gender } from "./user";
+import type { Age, Gender } from "./user";
 
 export interface OnlineUser {
   username: string;

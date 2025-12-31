@@ -1,7 +1,10 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-import { PeerConnectionState } from "@/lib/webrtc/PeerConnection";
-import { ConnectionInfo, ConnectionState } from "@/types/connection";
+import type {
+  PeerConnectionState,
+  ConnectionInfo,
+  ConnectionState,
+} from "@/types";
 
 const initialState: ConnectionState = {
   connections: {},
@@ -18,7 +21,7 @@ const connectionSlice = createSlice({
 
     updateConnectionState: (
       state,
-      action: PayloadAction<{ username: string; state: PeerConnectionState }>,
+      action: PayloadAction<{ username: string; state: PeerConnectionState }>
     ) => {
       if (state.connections[action.payload.username]) {
         state.connections[action.payload.username].state = action.payload.state;

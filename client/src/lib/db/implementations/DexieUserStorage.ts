@@ -1,7 +1,7 @@
-import Dexie, { Table } from "dexie";
+import Dexie, { type Table } from "dexie";
 
-import { UserInfo } from "@/types/user";
-import { IUserStorage } from "@/lib/db/interfaces/UserStorage";
+import type { UserInfo } from "@/types/user";
+import type { IUserStorage } from "@/lib/db/interfaces/UserStorage";
 
 class UserDatabase extends Dexie {
   users!: Table<UserInfo>;

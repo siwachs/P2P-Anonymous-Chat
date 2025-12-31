@@ -1,4 +1,4 @@
-import { PeerConnectionState } from "@/lib/webrtc/PeerConnection";
+import type { PeerConnectionState } from ".";
 
 export interface ConnectionInfo {
   username: string;

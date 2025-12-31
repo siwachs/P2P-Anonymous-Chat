@@ -1,57 +1,58 @@
-"use client";
-
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
-import { useConnectionManager } from "@/lib/hooks";
+import {
+  useState,
+  useRef,
+  useEffect,
+  type KeyboardEvent,
+  useCallback,
+} from "react";
+import { useParams } from "react-router-dom";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useSignalingSession,
+  useConnectionManager,
+} from "@/lib/hooks";
 
 import {
   selectConversationMessages,
   selectIsUserTyping,
 } from "@/lib/store/slices/messagesSlice";
-import { selectOnlineUser } from "@/lib/store/slices/onlineUsersSlice";
 import { setActiveConnection } from "@/lib/store/slices/connectionsSlice";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 
-import {
-  ArrowLeft,
-  Send,
-  Circle,
-  Loader2,
-  WifiOff,
-  RefreshCw,
-} from "lucide-react";
+import { Loader2, WifiOff, RefreshCw } from "lucide-react";
 
-export default function ChatPage() {
-  const params = useParams();
-  const router = useRouter();
+import { SEND_TYPING_TIMEOUT_IN } from "@/lib/constants";
+
+const ChatUser = () => {
+  const { username } = useParams();
   const dispatch = useAppDispatch();
-  const targetUsername = decodeURIComponent(params.username as string);
+  const targetUsername = decodeURIComponent(username as string);
   const [message, setMessage] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const { currentUser } = useAppSelector((state) => state.user);
-  const targetUser = useAppSelector((state) =>
-    selectOnlineUser(state, targetUsername),
+  const connection = useAppSelector(
+    (state) => state.connections.connections[targetUsername]
   );
   const messages = useAppSelector((state) =>
-    selectConversationMessages(state, targetUsername),
+    selectConversationMessages(state, targetUsername)
   );
   const isTyping = useAppSelector((state) =>
-    selectIsUserTyping(state, targetUsername),
+    selectIsUserTyping(state, targetUsername)
   );
-  const connection = useAppSelector(
-    (state) => state.connections.connections[targetUsername],
+
+  const { signaling, signalingConnected } = useSignalingSession();
+  const { sendMessage, connectToUser, sendTyping } = useConnectionManager(
+    signaling,
+    signalingConnected
   );
-  const { connectionManager, sendMessage } = useConnectionManager();
 
   // Set Active Connection
   useEffect(() => {
@@ -60,25 +61,7 @@ export default function ChatPage() {
     return () => {
       dispatch(setActiveConnection(null));
     };
-  }, [targetUsername, dispatch]);
-
-  // Initialize P2P connection
-  const initConnection = useCallback(async () => {
-    if (!connectionManager || !currentUser || !targetUsername) return;
-
-    setIsConnecting(true);
-    try {
-      await connectionManager.connectToUser(targetUsername);
-    } catch (error) {
-      console.error("Failed to connect:", error);
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [connectionManager, currentUser, targetUsername]);
-
-  useEffect(() => {
-    if (!connection || connection.state === "failed") initConnection();
-  }, [initConnection, connection]);
+  }, [dispatch, targetUsername]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -87,24 +70,41 @@ export default function ChatPage() {
 
   // Typing indicator
   useEffect(() => {
-    if (!connectionManager || !targetUsername) return;
+    if (!targetUsername) return;
 
     const timeoutId = setTimeout(() => {
-      connectionManager.sendTyping(targetUsername, message.length > 0);
-    }, 1000);
+      sendTyping(targetUsername, true);
+    }, SEND_TYPING_TIMEOUT_IN);
 
-    return () => clearTimeout(timeoutId);
-  }, [message, connectionManager, targetUsername]);
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [message, targetUsername, sendTyping]);
 
+  // Initialize P2P connection
+  const initConnection = useCallback(async () => {
+    if (!targetUsername) return;
+
+    setIsConnecting(true);
+    try {
+      await connectToUser(targetUsername);
+    } catch (error) {
+      console.error("Failed to connect:", error);
+    }
+
+    setIsConnecting(false);
+  }, [targetUsername, connectToUser]);
+
+  // Send Message
   const handleSendMessage = () => {
-    if (!message.trim() || !connectionManager || !targetUsername) return;
+    if (!message.trim() || !targetUsername) return;
 
-    sendMessage(targetUsername, message.trim());
+    sendMessage(targetUsername, message, "text");
     setMessage("");
     inputRef.current?.focus();
   };
 
-  const sendMessageOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const sendMessageOnEnter = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -118,60 +118,15 @@ export default function ChatPage() {
   const connectionState = connection?.state || "new";
   const isConnected = connectionState === "connected";
 
-  if (!targetUsername || !currentUser || !targetUser) return null;
+  // Init Connection
+  useEffect(() => {
+    if (!connection || connectionState === "failed") initConnection();
+  }, [connection, connectionState, initConnection]);
+
+  if (!targetUsername || !currentUser) return null;
 
   return (
-    <div className="bg-background flex h-screen flex-col overflow-hidden">
-      <header className="bg-card shrink-0 border-b">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.push("/chat/users")}
-            >
-              <ArrowLeft className="size-5" />
-            </Button>
-
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <Avatar className="size-10 shrink-0">
-                <AvatarFallback>
-                  {targetUsername.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate font-semibold">{targetUsername}</h1>
-                <div className="flex items-center gap-2 text-sm">
-                  {isTyping ? (
-                    <span className="text-muted-foreground">typing...</span>
-                  ) : (
-                    <ConnectionStatus state={connectionState} />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Connection Badge */}
-          <Badge
-            variant={isConnected ? "default" : "secondary"}
-            className="ml-2 flex shrink-0 items-center gap-1"
-          >
-            <Circle
-              className={`size-2 ${
-                isConnected
-                  ? "fill-green-500"
-                  : connectionState === "connecting"
-                    ? "fill-yellow-500"
-                    : "fill-red-500"
-              }`}
-            />
-            <span className="hidden sm:inline">{connectionState}</span>
-          </Badge>
-        </div>
-      </header>
-
+    <>
       {/* Messages Area */}
       <div className="relative min-h-0 flex-1">
         <ScrollArea className="scrollbar-thin h-full">
@@ -220,6 +175,7 @@ export default function ChatPage() {
         </ScrollArea>
       </div>
 
+      {/* Typing Indicator */}
       {isTyping && (
         <div className="absolute-0 bg-background/80 right-0 bottom-0 left-0 border-t px-4 py-2 backdrop-blur-sm">
           <div className="text-muted-foreground flex items-center gap-2 text-sm">
@@ -239,7 +195,6 @@ export default function ChatPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleSendMessage();
           }}
           className="flex gap-2"
         >
@@ -255,34 +210,11 @@ export default function ChatPage() {
             disabled={!isConnected}
             className="flex-1"
           />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!isConnected || !message.trim()}
-            className="shrink-0"
-          >
-            <Send className="size-4" />
-          </Button>
         </form>
       </div>
-    </div>
+    </>
   );
-}
-
-function ConnectionStatus({ state }: Readonly<{ state: string }>) {
-  const statusConfig = {
-    new: { text: "Not connected", color: "text-muted-foreground" },
-    connecting: { text: "Connecting...", color: "text-yellow-600" },
-    connected: { text: "Connected", color: "text-green-600" },
-    disconnected: { text: "Disconnected", color: "text-orange-600" },
-    failed: { text: "Connection failed", color: "text-red-600" },
-    closed: { text: "Connection closed", color: "text-muted-foreground" },
-  };
-  const config =
-    statusConfig[state as keyof typeof statusConfig] || statusConfig.new;
-
-  return <span className={`text-xs ${config.color}`}>{config.text}</span>;
-}
+};
 
 interface MessageBubbleProps {
   message: {
@@ -303,7 +235,9 @@ function MessageBubble({ message, isOwn }: Readonly<MessageBubbleProps>) {
           isOwn ? "bg-primary text-primary-foreground" : "bg-muted"
         }`}
       >
-        <p className="text-sm break-words sm:text-base">{message.content}</p>
+        <p className="text-sm wrap-break-word sm:text-base">
+          {message.content}
+        </p>
 
         <div
           className={`mt-1 flex items-center gap-2 text-xs ${
@@ -330,3 +264,5 @@ function MessageBubble({ message, isOwn }: Readonly<MessageBubbleProps>) {
     </div>
   );
 }
+
+export default ChatUser;
